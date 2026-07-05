@@ -5,24 +5,93 @@ const draft = {
   options: Array(OPTION_COUNT).fill(''),
   correct_options: [],
   keywords: [],
+  reference_links: [],
 };
+
+/* 編集モード時は対象の問題 ID が入る（?id= 付きで開かれた場合） */
+let editingId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   await loadSubjects();
+
+  const id = new URLSearchParams(location.search).get('id');
+  if (id) {
+    try {
+      const q = await API.get(`/api/questions/${encodeURIComponent(id)}`);
+      enterEditMode(q);
+    } catch {
+      alert(`ID "${id}" の問題が見つかりませんでした`);
+      location.href = '/';
+      return;
+    }
+  }
+
   renderOptions();
   renderKeywords();
+  renderLinks();
   attachListeners();
 });
 
+/* 取得した既存問題をフォームに反映し、編集モードに切り替える */
+function enterEditMode(q) {
+  editingId = q.id;
+  document.title = '問題編集 — 社会福祉士過去問アプリ';
+  document.querySelector('.card-title').textContent = '問題編集';
+  document.getElementById('btn-save').textContent = '更新する';
+
+  // 回次・問題番号は ID を構成するため編集不可
+  const editionEl = document.getElementById('f-edition');
+  editionEl.value = q.edition;
+  editionEl.disabled = true;
+  const numEl = document.getElementById('f-question-number');
+  numEl.value = q.question_number;
+  numEl.disabled = true;
+
+  // カリキュラムを先に反映してから、DB の生の subject 値を選択する
+  // （subject_display を使うと保存時に変換された名前で上書きされてしまう）
+  document.getElementById('f-curriculum').value = q.curriculum || 'new';
+  renderSubjectOptions(q.subject);
+
+  document.getElementById('f-qtype').value = q.question_type || '通常';
+  document.getElementById('f-case').value = q.case_text || '';
+  document.getElementById('f-question-text').value = q.question_text || '';
+  document.getElementById('f-explanation').value = q.explanation || '';
+
+  draft.options = [...(q.options || [])];
+  while (draft.options.length < OPTION_COUNT) draft.options.push('');
+  draft.correct_options = (q.correct_options || []).map(Number);
+  draft.keywords = (q.keywords || []).filter(k => k && k.trim());
+  draft.reference_links = (q.reference_links || []).filter(l => l && l.trim());
+}
+
+/* カリキュラム別の科目リスト（起動時に両方取得しておく） */
+const subjectLists = { new: [], old: [] };
+
 async function loadSubjects() {
-  const sel = document.getElementById('f-subject');
   try {
-    const subjects = await API.get('/api/subjects');
-    subjects.forEach(s => sel.add(new Option(s, s)));
+    [subjectLists.new, subjectLists.old] = await Promise.all([
+      API.get('/api/subjects'),
+      API.get('/api/subjects/old'),
+    ]);
+    renderSubjectOptions();
+    document.getElementById('f-curriculum').addEventListener('change', () => renderSubjectOptions());
   } catch (e) {
     console.error(e);
     showToast('科目一覧の読み込みに失敗しました。ページを再読み込みしてください', 'error');
   }
+}
+
+/* カリキュラムの値に応じて科目プルダウンの選択肢を出し分ける。
+   selected を渡すとその値を選択状態にする（リストに無い場合も選択肢として追加し、
+   既存レコードの subject がそのまま書き戻されるようにする） */
+function renderSubjectOptions(selected) {
+  const sel = document.getElementById('f-subject');
+  const curriculum = document.getElementById('f-curriculum').value;
+  const list = [...subjectLists[curriculum] || []];
+  if (selected && !list.includes(selected)) list.unshift(selected);
+  sel.innerHTML = '';
+  list.forEach(s => sel.add(new Option(s, s)));
+  if (selected) sel.value = selected;
 }
 
 function renderOptions() {
@@ -66,6 +135,26 @@ function renderKeywords() {
   );
 }
 
+function renderLinks() {
+  document.getElementById('f-links').innerHTML = draft.reference_links.map((l, i) =>
+    `<div class="edit-link-row">
+      <input class="edit-input" type="url" value="${escapeHtml(l)}" data-linkidx="${i}" style="flex:1">
+      <button type="button" class="edit-link-del-btn" data-linkidx="${i}">×</button>
+    </div>`
+  ).join('');
+  document.querySelectorAll('#f-links .edit-link-del-btn').forEach(btn =>
+    btn.addEventListener('click', e => {
+      draft.reference_links.splice(parseInt(e.currentTarget.dataset.linkidx), 1);
+      renderLinks();
+    })
+  );
+  document.querySelectorAll('#f-links input').forEach(inp =>
+    inp.addEventListener('input', e => {
+      draft.reference_links[parseInt(e.target.dataset.linkidx)] = e.target.value;
+    })
+  );
+}
+
 function addKeywordFromInput() {
   const inp = document.getElementById('f-kw-input');
   const v = inp.value.trim();
@@ -77,6 +166,11 @@ function addKeywordFromInput() {
 }
 
 function attachListeners() {
+  document.getElementById('f-link-add').addEventListener('click', () => {
+    draft.reference_links.push('');
+    renderLinks();
+  });
+
   document.getElementById('f-kw-add').addEventListener('click', addKeywordFromInput);
   document.getElementById('f-kw-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); addKeywordFromInput(); }
@@ -106,24 +200,6 @@ function attachListeners() {
   document.getElementById('btn-copy-prompt').addEventListener('click', copyExplanationPrompt);
 }
 
-function buildExplanationPrompt(questionText, caseText, options) {
-  const lines = [
-    '社会福祉士国家試験の次の問題について、各選択肢がなぜ正しい／誤りなのかを解説してください。',
-    '',
-    '- 出力は Markdown 形式で、そのままコピーできるようにコードブロックに入れてください。',
-    '- 冒頭に正解を「**正解: n**」のように太字で示してください。',
-    '- 「### 選択肢 1」のように選択肢ごとに見出しを付けて解説してください。',
-    '',
-  ];
-  if (caseText) lines.push('【事例文】', caseText, '');
-  lines.push('【問題文】', questionText, '', '【選択肢】');
-  options.forEach((opt, i) => lines.push(`${i + 1}. ${opt}`));
-  if (draft.correct_options.length) {
-    lines.push('', `【正解】${draft.correct_options.join('、')}`);
-  }
-  return lines.join('\n');
-}
-
 async function copyExplanationPrompt() {
   const questionText = document.getElementById('f-question-text').value.trim();
   const options = draft.options.map(o => o.trim()).filter(o => o);
@@ -132,7 +208,7 @@ async function copyExplanationPrompt() {
   if (options.length < 2) { showToast('先に選択肢を 2 つ以上入力してください', 'error'); return; }
 
   const caseText = document.getElementById('f-case').value.trim();
-  const prompt = buildExplanationPrompt(questionText, caseText, options);
+  const prompt = buildExplanationPrompt(questionText, caseText, options, draft.correct_options);
 
   try {
     await navigator.clipboard.writeText(prompt);
@@ -146,6 +222,7 @@ function resetForm() {
   draft.options = Array(OPTION_COUNT).fill('');
   draft.correct_options = [];
   draft.keywords = [];
+  draft.reference_links = [];
   document.getElementById('f-edition').value = '';
   document.getElementById('f-curriculum').value = 'new';
   document.getElementById('f-subject').selectedIndex = 0;
@@ -161,6 +238,7 @@ function resetForm() {
   document.getElementById('f-expl-preview').style.display = 'none';
   renderOptions();
   renderKeywords();
+  renderLinks();
 }
 
 async function saveQuestion() {
@@ -179,7 +257,6 @@ async function saveQuestion() {
   if (options.some(o => !o)) { showToast('選択肢は上から詰めて入力してください（途中に空欄があります）', 'error'); return; }
   if (!draft.correct_options.length) { showToast('正答肢を 1 つ以上選択してください', 'error'); return; }
   if (draft.correct_options.some(n => n > options.length)) { showToast('空欄の選択肢が正答肢に指定されています', 'error'); return; }
-  if (!explanation) { showToast('解説を入力してください', 'error'); return; }
 
   const body = {
     edition,
@@ -193,13 +270,24 @@ async function saveQuestion() {
     correct_options: draft.correct_options,
     explanation,
     keywords: draft.keywords,
-    reference_links: [],
+    reference_links: draft.reference_links.filter(l => l.trim()),
   };
 
   try {
-    const res = await API.post('/api/questions', body);
-    showToast(`保存しました（ID: ${res.id}）`, 'success');
-    resetForm();
+    if (editingId) {
+      await API.put(`/api/questions/${encodeURIComponent(editingId)}`, body);
+      showToast('更新しました', 'success');
+      // クイズ画面から別タブで開かれた場合はタブを閉じて元の画面に戻す。
+      // ダッシュボードから同一タブで来た場合はダッシュボードへ戻る。
+      setTimeout(() => {
+        if (window.opener) window.close();
+        else location.href = '/';
+      }, 1000);
+    } else {
+      const res = await API.post('/api/questions', body);
+      showToast(`保存しました（ID: ${res.id}）`, 'success');
+      resetForm();
+    }
   } catch (e) {
     showToast('保存に失敗しました: ' + e.message, 'error');
   }

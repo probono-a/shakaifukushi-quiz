@@ -77,9 +77,9 @@
         <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-prompt">📋 AI 解説依頼文をコピー</button>
       </div>
 
-      <div class="edit-field-label">解説（Markdown 可） *</div>
+      <div class="edit-field-label">解説（Markdown 可）</div>
       <div style="font-size:.78rem;color:var(--text-2);margin:-.15rem 0 .4rem">
-        上のボタンでコピーした依頼文を Gemini や ChatGPT に貼り付け、返ってきた文章をここに貼り付けてください。
+        クイズで回答した直後の答え合わせに表示されます。上のボタンでコピーした依頼文を Gemini や ChatGPT に貼り付け、返ってきた文章をここに貼り付けてください。
       </div>
       <div class="edit-md-tabs">
         <button type="button" class="edit-md-tab active" data-tab="edit">編集 (MD)</button>
@@ -89,11 +89,21 @@
       <div class="edit-md-preview" id="f-expl-preview" style="display:none"></div>
 
       <div class="edit-field-label">キーワード（Enter で追加）</div>
+      <div style="font-size:.78rem;color:var(--text-2);margin:-.15rem 0 .4rem">
+        答え合わせに Google 検索リンクとして表示され、関連用語をその場で調べられます。
+      </div>
       <div class="edit-kw-area" id="f-kw-area"></div>
       <div class="edit-kw-input-row">
         <input class="edit-input" id="f-kw-input" type="text" placeholder="キーワードを入力して Enter" style="flex:1">
         <button type="button" class="btn btn-secondary btn-sm" id="f-kw-add">追加</button>
       </div>
+
+      <div class="edit-field-label">参考リンク</div>
+      <div style="font-size:.78rem;color:var(--text-2);margin:-.15rem 0 .4rem">
+        答え合わせにページのタイトル・説明付きのリンクカードとして表示されます。復習に使うサイトの URL を貼ってください。
+      </div>
+      <div id="f-links"></div>
+      <button type="button" class="edit-add-btn" id="f-link-add">＋ URL を追加</button>
 
       <div style="margin-top:1.75rem;text-align:right">
         <button class="btn btn-primary btn-lg" id="btn-save">保存する</button>
