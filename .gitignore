@@ -1,0 +1,31 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.env
+
+# データファイル（Git 管理外 — 手元で生成するもの）
+data/pdf/*
+!data/pdf/.gitkeep
+data/images/*
+!data/images/.gitkeep
+data/*.db
+data/json/**/*.json
+!data/.gitkeep
+
+# Claude Code
+.claude/
+
+# OS / エディタ
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/settings.json
+
+# 一時的なスクリプトやファイル
+tmp/
+*.tmp
+scratch/
+
+# tools
+tools/ndlocr-lite

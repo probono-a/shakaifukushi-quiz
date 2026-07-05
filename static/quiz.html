@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クイズ — 社会福祉士過去問アプリ</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <script src="/js/theme.js"></script>
+  <script src="/js/sound.js"></script>
+  <style>
+    /* キーワード Google リンク */
+    .kw-link {
+      display: inline-block;
+      background: var(--primary-dim); color: var(--primary);
+      text-decoration: none; padding: .15rem .65rem;
+      border-radius: 12px; font-size: .82rem;
+      border: 1px solid rgba(129,140,248,.3);
+      transition: background var(--tr);
+    }
+    .kw-link:hover { background: rgba(129,140,248,.22); color: var(--primary-h); }
+
+    /* 解説ブロック */
+    .fb-explanation {
+      margin-top: .75rem; padding: .75rem 1rem;
+      background: rgba(251,191,36,.06);
+      border-left: 3px solid var(--warning);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      font-size: .88rem; line-height: 1.8;
+    }
+    .fb-explanation h3, .fb-explanation h4 { color: var(--warning); margin: .6rem 0 .2rem; font-size: .95em; }
+    .fb-explanation strong { color: var(--text); }
+    .fb-explanation em { color: var(--text-2); }
+    .fb-explanation p { margin: .2rem 0; }
+    .fb-explanation ul, .fb-explanation ol { padding-left: 1.4rem; margin: .3rem 0; }
+    .fb-explanation code { background: rgba(255,255,255,.08); padding: .1rem .35rem; border-radius: 4px; font-size: .85em; }
+    .fb-explanation table { border-collapse: collapse; width: 100%; font-size: .85em; margin: .5rem 0; }
+    .fb-explanation th, .fb-explanation td { border: 1px solid var(--border-strong); padding: .3rem .6rem; }
+    .fb-explanation th { background: rgba(255,255,255,.05); }
+
+    /* 参考リンク — Notion ブックマークカード */
+    .ref-bookmark {
+      display: flex; align-items: stretch;
+      margin-top: .5rem; border: 1px solid var(--border-strong);
+      border-radius: var(--radius); overflow: hidden;
+      text-decoration: none; color: inherit;
+      background: var(--bg-card);
+      transition: border-color var(--tr), background var(--tr);
+      min-height: 60px;
+    }
+    .ref-bookmark:hover { border-color: var(--primary); background: var(--bg-surface); }
+    .ref-bookmark-body {
+      flex: 1; padding: .55rem .75rem;
+      display: flex; flex-direction: column; justify-content: center;
+      min-width: 0;
+    }
+    .ref-bookmark-title {
+      font-size: .85rem; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: .15rem;
+    }
+    .ref-bookmark-desc {
+      font-size: .75rem; color: var(--text-2);
+      overflow: hidden; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      line-height: 1.4;
+    }
+    .ref-bookmark-footer {
+      display: flex; align-items: center; gap: .35rem;
+      margin-top: .3rem;
+    }
+    .ref-bookmark-favicon { width: 14px; height: 14px; flex-shrink: 0; }
+    .ref-bookmark-domain { font-size: .72rem; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ref-bookmark-thumb {
+      width: 100px; flex-shrink: 0;
+      background: var(--bg-surface);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ref-bookmark-thumb img { width: 100%; height: 100%; object-fit: cover; }
+    /* スケルトン */
+    .ref-bookmark-skeleton {
+      display: flex; align-items: center;
+      margin-top: .5rem; padding: .55rem .75rem;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--bg-card); gap: .5rem;
+    }
+    .ref-bookmark-skeleton .skel-line {
+      height: .7rem; border-radius: 4px;
+      background: linear-gradient(90deg, var(--bg-surface) 25%, var(--border) 50%, var(--bg-surface) 75%);
+      background-size: 200% 100%; animation: skel-shimmer 1.4s infinite;
+    }
+    @keyframes skel-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .ref-bookmark-skeleton .skel-icon { width:14px; height:14px; border-radius:3px; flex-shrink:0; }
+    .ref-bookmark-skeleton .skel-text { flex:1; }
+
+    /* 編集ボタン行 */
+    .fb-actions { display: flex; justify-content: flex-end; margin-top: .75rem; }
+
+    /* スコアカウントアップ完了時のポップ */
+    @keyframes score-pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.18); }
+      70%  { transform: scale(0.94); }
+      100% { transform: scale(1); }
+    }
+    .score-pop { animation: score-pop .45s ease-out forwards; }
+
+    /* 編集モーダル */
+    .edit-modal {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(0,0,0,.72);
+      display: flex; align-items: flex-start; justify-content: center;
+      overflow-y: auto; padding: 2rem 1rem;
+    }
+    .edit-modal.hidden { display: none; }
+    .edit-modal-box {
+      background: var(--bg-card); border: 1px solid var(--border-strong);
+      border-radius: var(--radius-lg); width: 100%; max-width: 680px;
+    }
+    .edit-modal-hd {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 1.25rem; border-bottom: 1px solid var(--border);
+      font-weight: 700; font-size: 1rem;
+    }
+    .edit-close-btn { background: none; border: none; color: var(--text-2); font-size: 1.15rem; cursor: pointer; padding: .2rem; }
+    .edit-close-btn:hover { color: var(--text); }
+    .edit-modal-body { padding: 1.25rem; max-height: 68vh; overflow-y: auto; }
+    .edit-modal-ft {
+      display: flex; gap: .75rem; justify-content: flex-end;
+      padding: 1rem 1.25rem; border-top: 1px solid var(--border);
+    }
+    .edit-field-label {
+      font-size: .75rem; font-weight: 600; color: var(--text-2);
+      text-transform: uppercase; letter-spacing: .05em;
+      margin: 1rem 0 .3rem;
+    }
+    .edit-field-label:first-child { margin-top: 0; }
+    .edit-input {
+      width: 100%; box-sizing: border-box;
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      padding: .5rem .75rem; font-size: .9rem; font-family: inherit;
+      outline: none; transition: border-color var(--tr);
+    }
+    .edit-input:focus { border-color: var(--primary); }
+    textarea.edit-input { resize: vertical; }
+    select.edit-input { cursor: pointer; }
+    .edit-opt-row { display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .4rem; }
+    .edit-opt-toggle {
+      flex-shrink: 0; width: 2rem; height: 2rem; border-radius: 50%;
+      border: 2px solid var(--border-strong);
+      background: var(--bg-surface); color: var(--text-2);
+      cursor: pointer; font-weight: 700; font-size: .85rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all var(--tr);
+    }
+    .edit-opt-toggle.correct { background: var(--success); border-color: var(--success); color: #000; }
+    .edit-opt-textarea {
+      flex: 1; background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      padding: .4rem .6rem; font-size: .88rem; font-family: inherit;
+      outline: none; resize: vertical; line-height: 1.55;
+    }
+    .edit-opt-textarea:focus { border-color: var(--primary); }
+    .edit-md-tabs { display: flex; gap: .3rem; margin-bottom: .4rem; }
+    .edit-md-tab {
+      background: var(--bg-surface); border: 1px solid var(--border);
+      border-radius: 6px; padding: .2rem .75rem;
+      font-size: .8rem; cursor: pointer; color: var(--text-2); transition: all var(--tr);
+    }
+    .edit-md-tab.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .edit-md-preview {
+      min-height: 60px; padding: .6rem .75rem;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      font-size: .88rem; line-height: 1.75; color: var(--text);
+    }
+    .edit-md-preview h3, .edit-md-preview h4 { color: var(--warning); margin: .5rem 0 .2rem; }
+    .edit-md-preview strong { color: var(--text); }
+    .edit-md-preview p { margin: .2rem 0; }
+    .edit-kw-area { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+    .edit-kw-chip {
+      display: inline-flex; align-items: center; gap: .25rem;
+      background: var(--primary-dim); border: 1px solid rgba(129,140,248,.3);
+      border-radius: 12px; padding: .15rem .55rem; font-size: .82rem; color: var(--primary);
+    }
+    .edit-kw-del-btn { background: none; border: none; cursor: pointer; color: var(--text-3); font-size: .8rem; padding: 0; }
+    .edit-kw-del-btn:hover { color: var(--danger); }
+    .edit-kw-input-row { display: flex; gap: .4rem; margin-top: .5rem; }
+    .edit-link-row { display: flex; gap: .4rem; margin-bottom: .35rem; align-items: center; }
+    .edit-link-del-btn {
+      flex-shrink: 0; background: none; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: .35rem .55rem;
+      cursor: pointer; color: var(--text-2); font-size: .8rem;
+    }
+    .edit-link-del-btn:hover { color: var(--danger); border-color: var(--danger); }
+    .edit-add-btn {
+      background: none; border: 1px dashed var(--border-strong);
+      border-radius: var(--radius); padding: .3rem .75rem;
+      font-size: .82rem; cursor: pointer; color: var(--text-2);
+      transition: all var(--tr);
+    }
+    .edit-add-btn:hover { border-color: var(--primary); color: var(--primary); }
+  </style>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/quiz.js" defer></script>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="logo">社会福祉士<span>過去問</span>アプリ</div>
+    <nav class="nav">
+      <a href="/" class="nav-link">← ダッシュボードへ</a>
+      <button class="btn-theme" id="btn-mute" title="効果音ミュート切り替え">🔊</button>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="テーマ切り替え">☀️</button>
+    </nav>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- セットアップ画面 -->
+  <div id="screen-setup" class="hidden">
+    <div class="quiz-wrap">
+      <div class="card setup-card" style="max-width:100%">
+        <h1 style="font-size:1.4rem;font-weight:700;margin-bottom:1.75rem">学習セッションを設定する</h1>
+
+        <!-- モード選択 -->
+        <div class="form-group">
+          <div class="form-label">出題モード</div>
+          <div class="mode-grid">
+            <div class="mode-card" data-mode="random">
+              <div class="mode-card-icon">🎲</div>
+              <div class="mode-card-title">ランダム N 問</div>
+              <div class="mode-card-desc">指定した科目からランダムに出題</div>
+            </div>
+            <div class="mode-card" data-mode="subject">
+              <div class="mode-card-icon">📚</div>
+              <div class="mode-card-title">科目指定</div>
+              <div class="mode-card-desc">選んだ科目の全問を出題</div>
+            </div>
+            <div class="mode-card" data-mode="wrong_only">
+              <div class="mode-card-icon">❌</div>
+              <div class="mode-card-title">間違えた問題のみ</div>
+              <div class="mode-card-desc">過去に不正解だった問題に集中</div>
+            </div>
+            <div class="mode-card" data-mode="edition">
+              <div class="mode-card-icon">📋</div>
+              <div class="mode-card-title">模擬受験</div>
+              <div class="mode-card-desc">特定の回の全問を通しで解く</div>
+            </div>
+            <div class="mode-card" data-mode="rare">
+              <div class="mode-card-icon">🔰</div>
+              <div class="mode-card-title">未出題・少ない順</div>
+              <div class="mode-card-desc">解いた回数が少ない問題を優先して出題</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 科目選択 -->
+        <div id="opt-subjects" class="form-group hidden">
+          <div class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>科目</span>
+            <span style="display:flex;gap:.5rem">
+              <button class="btn btn-secondary btn-sm" id="btn-all-subjects">全て選択</button>
+              <button class="btn btn-secondary btn-sm" id="btn-clear-subjects">クリア</button>
+            </span>
+          </div>
+          <div class="check-grid" id="subject-grid"></div>
+        </div>
+
+        <!-- 問題数 -->
+        <div id="opt-count" class="form-group hidden">
+          <label class="form-label" for="count-input">問題数</label>
+          <select class="form-select" id="count-input" style="max-width:180px">
+            <option value="10">10 問</option>
+            <option value="20" selected>20 問</option>
+            <option value="30">30 問</option>
+            <option value="50">50 問</option>
+          </select>
+        </div>
+
+        <!-- エディション選択 -->
+        <div id="opt-edition" class="form-group hidden">
+          <label class="form-label" for="edition-select">回（エディション）</label>
+          <select class="form-select" id="edition-select" style="max-width:200px">
+            <option value="">選択してください</option>
+          </select>
+        </div>
+
+        <!-- 間違え問題のみ の説明 -->
+        <div id="info-wrong" class="hidden" style="background:var(--warning-dim);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius);padding:.875rem 1rem;font-size:.875rem;color:var(--warning);margin-bottom:1rem">
+          過去の解答履歴から、1 度でも不正解だった問題を出題します。
+        </div>
+
+        <!-- 未出題・少ない順 の説明 -->
+        <div id="info-rare" class="hidden" style="background:var(--primary-dim);border:1px solid rgba(129,140,248,.25);border-radius:var(--radius);padding:.875rem 1rem;font-size:.875rem;color:var(--primary);margin-bottom:1rem">
+          まだ解いたことがない問題、または解答回数の少ない問題から優先して出題します。
+        </div>
+
+        <!-- フィルター -->
+        <div class="form-group" style="margin-bottom:1.25rem">
+          <div class="form-label">フィルター（任意）</div>
+          <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
+            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.9rem">
+              <input type="checkbox" id="filter-case-only">
+              <span>事例問題のみ</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.9rem">
+              <input type="checkbox" id="filter-multiple-only">
+              <span>複数選択問題のみ</span>
+            </label>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg" id="btn-start">学習を始める →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ローディング -->
+  <div id="screen-loading" class="hidden">
+    <div class="loading" style="height:60vh">
+      <div class="spinner"></div>問題を読み込み中…
+    </div>
+  </div>
+
+  <!-- クイズ画面 -->
+  <div id="screen-quiz" class="hidden">
+    <div class="quiz-wrap">
+      <!-- プログレス -->
+      <div class="progress-hd">
+        <span>問題</span>
+        <span id="progress-text"></span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+
+      <!-- メタ -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+        <div class="q-meta" id="q-meta" style="margin-bottom:0"></div>
+      </div>
+
+      <!-- 問題文 -->
+      <div class="q-text" id="q-text"></div>
+
+      <!-- 事例文 -->
+      <div class="case-box hidden" id="case-text"></div>
+      <div class="q-hint" id="q-hint"></div>
+
+      <!-- 選択肢 -->
+      <div class="options" id="options"></div>
+
+      <!-- フィードバック -->
+      <div class="feedback-box hidden" id="feedback">
+        <div class="feedback-title" id="fb-title"></div>
+        <div style="font-size:.85rem;color:var(--text-2);margin-bottom:.5rem" id="fb-answer"></div>
+        <div class="kw-list" id="fb-keywords"></div>
+        <div class="fb-explanation" id="fb-explanation" style="display:none"></div>
+        <div id="fb-links" style="margin-top:.5rem"></div>
+        <div class="fb-actions" id="fb-actions"></div>
+      </div>
+
+      <!-- 次へボタン -->
+      <div style="margin-top:1.5rem;text-align:right">
+        <button class="btn btn-primary btn-lg hidden" id="btn-next">次の問題 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="screen-result" class="hidden">
+    <div class="quiz-wrap">
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="result-score">
+          <div class="result-num" id="res-score">—</div>
+          <div class="result-label" id="res-label">— / — 問正解</div>
+          <div class="result-actions">
+            <button class="btn btn-secondary btn-lg" id="btn-retry">もう一度設定する</button>
+            <button class="btn btn-primary btn-lg" id="btn-dashboard">ダッシュボードへ</button>
+          </div>
+        </div>
+      </div>
+      <div class="card" id="res-subject-section" style="opacity:0;transition:opacity .7s">
+        <div class="card-title">科目別正答率</div>
+        <table class="tbl">
+          <thead><tr><th>科目</th><th>正解 / 問題数</th><th>正答率</th></tr></thead>
+          <tbody id="res-subject-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer style="text-align:center;padding:.6rem;font-size:.7rem;color:var(--text-2)">
+  効果音：<a href="https://otologic.jp" target="_blank" rel="noopener" style="color:var(--text-2)">OtoLogic</a>（CC BY 4.0）
+</footer>
+
+<!-- 編集モーダル -->
+<div id="edit-modal" class="edit-modal hidden">
+  <div class="edit-modal-box">
+    <div class="edit-modal-hd">
+      <span>問題を編集</span>
+      <button class="edit-close-btn" id="edit-modal-close">✕</button>
+    </div>
+    <div class="edit-modal-body" id="edit-modal-body"></div>
+    <div class="edit-modal-ft">
+      <button class="btn btn-secondary" id="edit-cancel-btn">キャンセル</button>
+      <button class="btn btn-primary" id="edit-save-btn">保存</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

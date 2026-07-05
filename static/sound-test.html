@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>効果音テスト</title>
+<script src="/js/sound.js"></script>
+<style>
+  body { font-family: sans-serif; background: #1a1a2e; color: #eee; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 1rem; }
+  h1 { font-size: 1.2rem; color: #aaa; margin-bottom: .5rem; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; width: 400px; }
+  button { padding: 1rem; border: none; border-radius: 10px; font-size: 1.1rem; cursor: pointer; transition: transform .1s, opacity .1s; }
+  button:active { transform: scale(.95); opacity: .8; }
+  .correct { background: #22c55e; color: #000; }
+  .wrong   { background: #ef4444; color: #fff; }
+  .start   { background: #f59e0b; color: #000; }
+  .results { background: #818cf8; color: #fff; }
+</style>
+</head>
+<body>
+<h1>🔊 効果音テスト — ボタンを押して試聴</h1>
+<div class="grid">
+  <button class="correct" onclick="SoundManager.play('correct')">✅ ピンポン（正解）</button>
+  <button class="wrong"   onclick="SoundManager.play('wrong')">❌ ブー（不正解）</button>
+  <button class="start"   onclick="SoundManager.play('start')">❓ ジャジャン（出題）</button>
+  <button class="results" onclick="SoundManager.play('results')">🎉 ファンファーレ（全問終了）</button>
+</div>
+<p style="font-size:.75rem;color:#666;margin-top:1rem">効果音：<a href="https://otologic.jp" target="_blank" style="color:#666">OtoLogic</a>（CC BY 4.0）</p>
+</body>
+</html>

@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>社会福祉士クイズ JSON プレビュー＆エディター</title>
+    <link rel="icon" type="image/png" href="../static/favicon.png">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --success-color: #16a34a;
+            --danger-color: #ef4444;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 20px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-success {
+            background-color: var(--success-color);
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.85em;
+            border-radius: 4px;
+        }
+
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+
+        .question-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .q-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+        }
+
+        [contenteditable="true"] {
+            outline: none;
+            transition: background-color 0.2s, box-shadow 0.2s;
+            border-radius: 4px;
+            padding: 2px 4px;
+            min-height: 1.5em;
+        }
+
+        [contenteditable="true"]:hover {
+            box-shadow: 0 0 0 2px #bae6fd;
+        }
+
+        [contenteditable="true"]:focus {
+            background-color: #f0fdf4;
+            box-shadow: 0 0 0 2px var(--success-color);
+        }
+
+        .q-subject {
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 1.1em;
+        }
+
+        .q-id {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        .reviewed-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9em;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .reviewed-toggle.is-reviewed {
+            background: #dcfce7;
+            color: var(--success-color);
+            border: 1px solid var(--success-color);
+            font-weight: bold;
+        }
+
+        .curriculum-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            padding: 6px 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px dashed var(--border-color);
+        }
+
+        .curriculum-row .curriculum-label {
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .curriculum-row [contenteditable="true"] {
+            flex: 1;
+            min-width: 60px;
+        }
+
+        .q-case {
+            background-color: #f1f5f9;
+            padding: 12px;
+            border-left: 4px solid var(--text-muted);
+            margin-bottom: 16px;
+            font-size: 0.95em;
+            white-space: pre-wrap;
+        }
+
+        .q-text {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+        }
+
+        .array-section {
+            margin-bottom: 16px;
+        }
+
+        .array-title {
+            font-size: 0.9em;
+            font-weight: bold;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .array-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .array-item-content {
+            flex-grow: 1;
+            background-color: #f8fafc;
+            border: 1px dashed var(--border-color);
+            padding: 4px 8px;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .q-images img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        .options {
+            margin: 0 0 20px 0;
+        }
+
+        .option-wrapper {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 8px;
+            background-color: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .option-wrapper.correct {
+            border-color: var(--success-color);
+            background-color: #f0fdf4;
+        }
+
+        .option-toggle {
+            padding: 10px 12px;
+            background-color: #e2e8f0;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: bold;
+            user-select: none;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .option-wrapper.correct .option-toggle {
+            background-color: var(--success-color);
+            color: white;
+            border-color: var(--success-color);
+        }
+
+        .option-text {
+            padding: 10px 12px;
+            flex-grow: 1;
+            white-space: pre-wrap;
+        }
+
+        /* Explanation markdown editor */
+        .explanation {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin-top: 20px;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .explanation-title {
+            font-weight: bold;
+            color: #b45309;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .md-tabs {
+            display: flex;
+            gap: 4px;
+        }
+
+        .md-tab {
+            background: #fde68a;
+            border: 1px solid #f59e0b;
+            border-radius: 4px;
+            padding: 2px 10px;
+            font-size: 0.8em;
+            font-weight: bold;
+            cursor: pointer;
+            color: #92400e;
+            transition: background 0.15s;
+        }
+
+        .md-tab.active {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .md-tab:hover:not(.active) {
+            background: #fcd34d;
+        }
+
+        .md-editor {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 100px;
+            border: 1px dashed #f59e0b;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.9em;
+            background: #fffde7;
+            resize: vertical;
+            outline: none;
+            transition: box-shadow 0.2s;
+            color: var(--text-color);
+        }
+
+        .md-editor:focus {
+            box-shadow: 0 0 0 2px #f59e0b;
+        }
+
+        .md-preview {
+            min-height: 40px;
+            padding: 4px 2px;
+            font-size: 0.95em;
+            line-height: 1.7;
+        }
+
+        .md-preview h1, .md-preview h2, .md-preview h3, .md-preview h4 {
+            color: #92400e;
+            border-bottom: 1px solid #fde68a;
+        }
+
+        .md-preview ul, .md-preview ol {
+            padding-left: 1.5em;
+        }
+
+        .md-preview a {
+            color: var(--primary-color);
+        }
+
+        .md-preview code {
+            background: #fef3c7;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .md-preview table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 8px 0;
+            font-size: 0.9em;
+        }
+
+        .md-preview th, .md-preview td {
+            border: 1px solid #fde68a;
+            padding: 4px 8px;
+            text-align: left;
+        }
+
+        .md-preview th {
+            background: #fef3c7;
+            font-weight: bold;
+        }
+
+        /* Keyword links */
+        .keyword-links-section {
+            margin-top: 8px;
+            padding: 8px 10px;
+            background: #eff6ff;
+            border-radius: 6px;
+            border: 1px dashed #93c5fd;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .keyword-link {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1d4ed8;
+            text-decoration: none;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            border: 1px solid #93c5fd;
+            transition: background 0.15s;
+        }
+
+        .keyword-link:hover {
+            background: #bfdbfe;
+            text-decoration: underline;
+        }
+
+        .fab-container {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: none;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .progress-bar-wrapper {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+        }
+
+        .progress-track {
+            flex: 1;
+            min-width: 160px;
+            background: #e2e8f0;
+            border-radius: 999px;
+            height: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success-color);
+            border-radius: 999px;
+            transition: width 0.3s;
+        }
+
+        .progress-label {
+            font-size: 0.9em;
+            font-weight: bold;
+            white-space: nowrap;
+            color: var(--text-color);
+        }
+
+        .incomplete-label {
+            font-size: 0.9em;
+            color: #d97706;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .btn-next-incomplete {
+            background-color: #f59e0b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-next-incomplete:hover {
+            background-color: #d97706;
+        }
+
+        .question-card.incomplete {
+            border-color: #f59e0b;
+            border-width: 2px;
+        }
+
+        .question-card.incomplete .q-header {
+            border-bottom-color: #fde68a;
+        }
+
+        .drop-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(37, 99, 235, 0.12);
+            border: 4px dashed #2563eb;
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6em;
+            font-weight: bold;
+            color: #2563eb;
+            pointer-events: none;
+        }
+
+        .drop-overlay.active {
+            display: flex;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="drop-overlay" class="drop-overlay">📂 JSON ファイルをドロップして開く</div>
+    <div id="toast" class="toast">保存しました</div>
+
+    <div class="container">
+        <div class="header">
+            <h1>JSON プレビュー＆エディター</h1>
+            <p>File System Access API を使用して、ローカルの JSON ファイルを直接上書き保存します。<br>テキストはクリックして編集でき、配列要素の追加・削除も可能です。</p>
+        </div>
+
+        <div class="controls">
+            <button id="reopen-btn" class="btn" style="display:none; background-color: #0891b2;">🔄 前回のファイルを開く</button>
+            <button id="open-btn" class="btn">📂 JSON ファイルを開く</button>
+            <button id="new-file-btn" class="btn" style="background-color: #8b5cf6;">📝 新規問題集を作成</button>
+            <div id="file-info" style="margin-top: 15px; font-size: 0.9em; color: var(--primary-color); font-weight: bold;"></div>
+        </div>
+
+        <div id="progress-section" style="display:none;" class="progress-bar-wrapper">
+            <span class="progress-label" id="progress-text">チェック済: 0 / 0</span>
+            <div class="progress-track">
+                <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+            </div>
+            <span class="incomplete-label" id="incomplete-text"></span>
+            <button class="btn-next-incomplete" id="next-incomplete-btn" style="display:none;">未チェックへジャンプ</button>
+        </div>
+
+        <div id="questions-container"></div>
+
+        <div id="add-question-container"
+            style="text-align: center; margin-top: 30px; margin-bottom: 30px; display: none;">
+            <button id="add-question-btn" class="btn" style="background-color: #f59e0b;">➕ 新しい問題を追加</button>
+        </div>
+    </div>
+
+    <div class="fab-container" id="fab-container">
+        <button class="btn btn-success" id="save-btn" style="border-radius: 50px; padding: 14px 28px;">
+            💾 上書き保存 (Ctrl+S)
+        </button>
+    </div>
+
+    <script>
+        let currentData = null;
+        let fileHandle = null;
+
+        const openBtn = document.getElementById('open-btn');
+        const newFileBtn = document.getElementById('new-file-btn');
+        const reopenBtn = document.getElementById('reopen-btn');
+        const addQuestionBtn = document.getElementById('add-question-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const container = document.getElementById('questions-container');
+        const addQuestionContainer = document.getElementById('add-question-container');
+        const fabContainer = document.getElementById('fab-container');
+        const toast = document.getElementById('toast');
+        const fileInfo = document.getElementById('file-info');
+        const progressSection = document.getElementById('progress-section');
+        const progressText = document.getElementById('progress-text');
+        const progressFill = document.getElementById('progress-fill');
+        const incompleteText = document.getElementById('incomplete-text');
+
+        // IndexedDB helpers for persisting the last file handle
+        function getDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open('quiz-editor-db', 1);
+                req.onupgradeneeded = () => req.result.createObjectStore('store');
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = reject;
+            });
+        }
+        async function saveLastHandle(handle) {
+            try {
+                const db = await getDB();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction('store', 'readwrite');
+                    tx.objectStore('store').put(handle, 'lastFile');
+                    tx.oncomplete = resolve;
+                    tx.onerror = reject;
+                });
+            } catch (e) { /* IndexedDB unavailable, ignore */ }
+        }
+        async function getLastHandle() {
+            try {
+                const db = await getDB();
+                return new Promise((resolve) => {
+                    const tx = db.transaction('store', 'readonly');
+                    const req = tx.objectStore('store').get('lastFile');
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                });
+            } catch (e) { return null; }
+        }
+
+        // On page load: show reopen button if last handle exists
+        getLastHandle().then(handle => {
+            if (handle) {
+                reopenBtn.style.display = '';
+                reopenBtn.addEventListener('click', async () => {
+                    try {
+                        const perm = await handle.requestPermission({ mode: 'readwrite' });
+                        if (perm === 'granted') {
+                            await loadFile(handle);
+                        } else {
+                            alert('書き込み権限が必要です。「JSON ファイルを開く」ボタンから開いてください。');
+                        }
+                    } catch (e) {
+                        alert('前回のファイルを開けませんでした: ' + e.message);
+                    }
+                });
+            }
+        });
+        const nextIncompleteBtn = document.getElementById('next-incomplete-btn');
+
+        async function loadFile(handle) {
+            const file = await handle.getFile();
+            const text = await file.text();
+            currentData = JSON.parse(text);
+            fileHandle = handle;
+            renderQuestions();
+            fabContainer.style.display = 'block';
+            addQuestionContainer.style.display = 'block';
+            reopenBtn.style.display = 'none';
+            fileInfo.textContent = `📁 編集中のファイル: ${file.name}`;
+            showToast(`${file.name} を読み込みました`);
+            saveLastHandle(handle);
+        }
+
+        async function openFile() {
+            try {
+                const opts = {
+                    id: 'quiz-json-picker',
+                    types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+                };
+                if (fileHandle) opts.startIn = fileHandle;
+                [fileHandle] = await window.showOpenFilePicker(opts);
+                await loadFile(fileHandle);
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    alert('ファイルを開けませんでした: ' + err.message);
+                }
+            }
+        }
+
+        function rerenderKeepingScroll() {
+            const scrollY = window.scrollY;
+            const editorHeights = {};
+            document.querySelectorAll('.md-editor').forEach(el => {
+                if (el.style.height) {
+                    editorHeights[el.getAttribute('data-qidx')] = el.style.height;
+                }
+            });
+
+            renderQuestions();
+
+            window.scrollTo(0, scrollY);
+            document.querySelectorAll('.md-editor').forEach(el => {
+                const h = editorHeights[el.getAttribute('data-qidx')];
+                if (h) el.style.height = h;
+            });
+        }
+
+        async function saveFile() {
+            if (!fileHandle || !currentData) return;
+            try {
+                const writable = await fileHandle.createWritable();
+                await writable.write(JSON.stringify(currentData, null, 2));
+                await writable.close();
+                showToast('💾 上書き保存しました');
+            } catch (err) {
+                alert('保存に失敗しました: ' + err.message);
+            }
+        }
+
+        async function createNewFile() {
+            try {
+                const opts = {
+                    id: 'quiz-json-picker',
+                    suggestedName: 'new_quiz.json',
+                    types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+                };
+                if (fileHandle) opts.startIn = fileHandle;
+                const handle = await window.showSaveFilePicker(opts);
+                fileHandle = handle;
+                currentData = [];
+                renderQuestions();
+                fabContainer.style.display = 'block';
+                addQuestionContainer.style.display = 'block';
+                fileInfo.textContent = `📁 編集中のファイル: ${handle.name}`;
+                showToast(`新規作成しました: ${handle.name}`);
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    alert('新規作成できませんでした: ' + err.message);
+                }
+            }
+        }
+
+        function addNewQuestion() {
+            if (!currentData) return;
+            const newQ = {
+                id: "",
+                edition: 0,
+                subject: "",
+                curriculum: "",
+                question_number: currentData.length + 1,
+                question_type: "通常",
+                case_text: "",
+                question_text: "",
+                image_paths: [],
+                options: ["", "", "", "", ""],
+                correct_options: [],
+                is_multiple_answers: false,
+                explanation: "",
+                keywords: [],
+                reference_links: [],
+                is_reviewed: false
+            };
+            currentData.push(newQ);
+            renderQuestions();
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        openBtn.addEventListener('click', openFile);
+        newFileBtn.addEventListener('click', createNewFile);
+        addQuestionBtn.addEventListener('click', addNewQuestion);
+        saveBtn.addEventListener('click', saveFile);
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveFile();
+            }
+        });
+
+        // ドラッグ＆ドロップでJSONを開く
+        const dropOverlay = document.getElementById('drop-overlay');
+        let dragCounter = 0;
+
+        document.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            dragCounter++;
+            dropOverlay.classList.add('active');
+        });
+
+        document.addEventListener('dragleave', () => {
+            dragCounter--;
+            if (dragCounter === 0) dropOverlay.classList.remove('active');
+        });
+
+        document.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+
+        document.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            dropOverlay.classList.remove('active');
+
+            const item = e.dataTransfer.items[0];
+            if (!item || item.kind !== 'file') return;
+
+            try {
+                if (item.getAsFileSystemHandle) {
+                    const handle = await item.getAsFileSystemHandle();
+                    if (handle.kind !== 'file') return;
+                    const perm = await handle.requestPermission({ mode: 'readwrite' });
+                    if (perm !== 'granted') {
+                        alert('書き込み権限が必要です。「JSONファイルを開く」ボタンから開いてください。');
+                        return;
+                    }
+                    await loadFile(handle);
+                } else {
+                    // フォールバック: 読み取り専用
+                    const file = item.getAsFile();
+                    if (!file.name.endsWith('.json')) { alert('JSON ファイルをドロップしてください'); return; }
+                    currentData = JSON.parse(await file.text());
+                    fileHandle = null;
+                    renderQuestions();
+                    fabContainer.style.display = 'block';
+                    addQuestionContainer.style.display = 'block';
+                    fileInfo.textContent = `📁 ${file.name}（読み取り専用 — 保存は「JSONファイルを開く」から）`;
+                    showToast(`${file.name} を読み込みました（読み取り専用）`);
+                }
+            } catch (err) {
+                alert('読み込めませんでした: ' + err.message);
+            }
+        });
+
+        function isIncomplete(q) {
+            if (q.question_type === '不適切') return false;
+            if (!q.question_text || !q.question_text.trim()) return true;
+            if (!q.correct_options || q.correct_options.length === 0) return true;
+            if (!q.explanation || !q.explanation.trim()) return true;
+            if (q.options && q.options.some(o => !o || !o.trim())) return true;
+            return false;
+        }
+
+        function updateProgress() {
+            if (!currentData) return;
+            const total = currentData.length;
+            const reviewed = currentData.filter(q => q.is_reviewed).length;
+            const unchecked = total - reviewed;
+            const incompleteCount = currentData.filter(q => isIncomplete(q)).length;
+            const pct = total > 0 ? Math.round((reviewed / total) * 100) : 0;
+
+            progressText.textContent = `チェック済: ${reviewed} / ${total} (${pct}%)`;
+            progressFill.style.width = pct + '%';
+
+            incompleteText.textContent = incompleteCount > 0 ? `未入力あり: ${incompleteCount} 問` : '全問入力済 ✓';
+            nextIncompleteBtn.style.display = unchecked > 0 ? '' : 'none';
+
+            document.querySelectorAll('.question-card').forEach((card, i) => {
+                if (isIncomplete(currentData[i])) {
+                    card.classList.add('incomplete');
+                } else {
+                    card.classList.remove('incomplete');
+                }
+            });
+        }
+
+        nextIncompleteBtn.addEventListener('click', () => {
+            if (!currentData) return;
+            const i = currentData.findIndex(q => !q.is_reviewed);
+            if (i === -1) return;
+            const card = document.getElementById('q-card-' + i);
+            if (card) {
+                card.style.scrollMarginTop = (progressSection.offsetHeight + 8) + 'px';
+                card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.style.opacity = '1';
+            setTimeout(() => toast.style.opacity = '0', 3000);
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function renderMarkdown(text) {
+            if (!text || !text.trim()) return '<em style="color:#aaa">（プレビューなし）</em>';
+
+            const escaped = text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            const lines = escaped.split('\n');
+            const result = [];
+            let inUl = false;
+            let inOl = false;
+            let i = 0;
+
+            const closeList = () => {
+                if (inUl) { result.push('</ul>'); inUl = false; }
+                if (inOl) { result.push('</ol>'); inOl = false; }
+            };
+
+            const isTableRow = (l) => /^\|.+\|/.test(l.trim());
+            const isSepRow = (l) => /^\|[\s:|–-]+\|/.test(l.trim());
+            const parseCells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
+
+            while (i < lines.length) {
+                const line = lines[i];
+
+                // テーブル検出: 現在行がテーブル行で次行がセパレータ
+                if (isTableRow(line) && i + 1 < lines.length && isSepRow(lines[i + 1])) {
+                    closeList();
+                    const headers = parseCells(line);
+                    i += 2;
+                    let tbl = '<table><thead><tr>';
+                    headers.forEach(h => { tbl += `<th>${h}</th>`; });
+                    tbl += '</tr></thead><tbody>';
+                    while (i < lines.length && isTableRow(lines[i])) {
+                        const cells = parseCells(lines[i]);
+                        tbl += '<tr>';
+                        cells.forEach(c => { tbl += `<td>${c}</td>`; });
+                        tbl += '</tr>';
+                        i++;
+                    }
+                    tbl += '</tbody></table>';
+                    result.push(tbl);
+                    continue;
+                }
+
+                if (/^### (.+)$/.test(line)) {
+                    closeList();
+                    result.push(line.replace(/^### (.+)$/, '<h4>$1</h4>'));
+                } else if (/^## (.+)$/.test(line)) {
+                    closeList();
+                    result.push(line.replace(/^## (.+)$/, '<h3>$1</h3>'));
+                } else if (/^# (.+)$/.test(line)) {
+                    closeList();
+                    result.push(line.replace(/^# (.+)$/, '<h2>$1</h2>'));
+                } else if (/^[-*] (.+)$/.test(line)) {
+                    if (inOl) { result.push('</ol>'); inOl = false; }
+                    if (!inUl) { result.push('<ul>'); inUl = true; }
+                    result.push(line.replace(/^[-*] (.+)$/, '<li>$1</li>'));
+                } else if (/^\d+\. (.+)$/.test(line)) {
+                    if (inUl) { result.push('</ul>'); inUl = false; }
+                    if (!inOl) { result.push('<ol>'); inOl = true; }
+                    result.push(line.replace(/^\d+\. (.+)$/, '<li>$1</li>'));
+                } else if (line.trim() === '') {
+                    closeList();
+                    result.push('<br>');
+                } else {
+                    closeList();
+                    result.push('<p>' + line + '</p>');
+                }
+                i++;
+            }
+            closeList();
+
+            return result.join('\n')
+                .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                .replace(/`(.+?)`/g, '<code>$1</code>')
+                .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+        }
+
+        function buildKeywordLinks(keywords) {
+            const links = (keywords || [])
+                .filter(k => k && k.trim())
+                .map(k => `<a href="https://www.google.com/search?q=${encodeURIComponent(k)}" target="_blank" rel="noopener noreferrer" class="keyword-link">${escapeHtml(k)}</a>`)
+                .join('');
+            return `<div class="keyword-links-section" style="${links ? '' : 'display:none'}">${links}</div>`;
+        }
+
+        function renderQuestions() {
+            container.innerHTML = '';
+            if (!Array.isArray(currentData)) {
+                alert('JSONのルートは配列である必要があります。');
+                return;
+            }
+
+            currentData.forEach((q, qIndex) => {
+                const card = document.createElement('div');
+                card.className = 'question-card';
+                card.id = 'q-card-' + qIndex;
+
+                const caseHtml = `<div class="q-case" contenteditable="true" data-qidx="${qIndex}" data-field="case_text" placeholder="事例テキストがここに入ります">${q.case_text || ''}</div>`;
+
+                const correctOpts = q.correct_options || [];
+                let optionsHtml = '<div class="options">';
+                (q.options || []).forEach((opt, optIdx) => {
+                    const optNum = optIdx + 1;
+                    const isCorrect = correctOpts.includes(optNum);
+                    optionsHtml += `
+                    <div class="option-wrapper ${isCorrect ? 'correct' : ''}">
+                        <div class="option-toggle" data-qidx="${qIndex}" data-optnum="${optNum}">${optNum}</div>
+                        <div class="option-text" contenteditable="true" data-qidx="${qIndex}" data-optidx="${optIdx}" data-field="options">${opt}</div>
+                    </div>
+                `;
+                });
+                optionsHtml += '</div>';
+
+                const buildArraySection = (title, field, arr) => {
+                    let html = `<div class="array-section">
+                    <div class="array-title">${title} <button class="btn btn-primary btn-small add-array-item" data-qidx="${qIndex}" data-field="${field}">+ 追加</button></div>`;
+                    (arr || []).forEach((item, idx) => {
+                        html += `<div class="array-item">
+                        <button class="btn btn-danger btn-small del-array-item" data-qidx="${qIndex}" data-field="${field}" data-idx="${idx}">×</button>
+                        <div class="array-item-content" contenteditable="true" data-qidx="${qIndex}" data-field="${field}" data-arridx="${idx}">${item}</div>
+                    </div>`;
+                        if (field === 'image_paths' && item) {
+                            html += `<div class="q-images"><img src="${item}" alt="画像エラー: ${item}" onerror="this.onerror=null; this.alt='画像が見つかりません: ${item} (パスを確認してください)'"></div>`;
+                        }
+                    });
+                    html += `</div>`;
+                    return html;
+                };
+
+                const imagesHtml = buildArraySection('🖼️ 画像パス (image_paths)', 'image_paths', q.image_paths);
+                const keywordsHtml = buildArraySection('🏷️ キーワード (keywords)', 'keywords', q.keywords);
+                const linksHtml = buildArraySection('🔗 参考リンク (reference_links)', 'reference_links', q.reference_links);
+                const keywordLinksHtml = buildKeywordLinks(q.keywords);
+
+                const explanationHtml = `
+                <div class="explanation">
+                    <div class="explanation-title">
+                        <span>💡 解説</span>
+                        <div class="md-tabs">
+                            <button class="md-tab" data-tab="edit" data-qidx="${qIndex}">編集 (MD)</button>
+                            <button class="md-tab active" data-tab="preview" data-qidx="${qIndex}">プレビュー</button>
+                        </div>
+                    </div>
+                    <textarea class="md-editor" data-qidx="${qIndex}" data-field="explanation" rows="5" style="display:none;">${escapeHtml(q.explanation || '')}</textarea>
+                    <div class="md-preview">${renderMarkdown(q.explanation || '')}</div>
+                </div>`;
+
+                card.innerHTML = `
+                <div class="q-header">
+                    <div>
+                        第<span contenteditable="true" data-qidx="${qIndex}" data-field="edition" style="display:inline-block; min-width:20px; text-align:center;">${q.edition || ''}</span>回 -
+                        <span class="q-subject" contenteditable="true" data-qidx="${qIndex}" data-field="subject">${q.subject || ''}</span>
+                        - 問題<span contenteditable="true" data-qidx="${qIndex}" data-field="question_number" style="display:inline-block; min-width:20px;">${q.question_number || ''}</span>
+                        -
+                        <select class="q-type-select" data-qidx="${qIndex}" data-field="question_type" style="font-size:0.85em; border:1px solid var(--border-color); border-radius:4px; padding:2px 6px; background:#f8fafc; cursor:pointer;">
+                            <option value="通常" ${(q.question_type || '通常') === '通常' ? 'selected' : ''}>通常</option>
+                            <option value="事例" ${q.question_type === '事例' ? 'selected' : ''}>事例</option>
+                            <option value="不適切" ${q.question_type === '不適切' ? 'selected' : ''}>不適切（全員正解）</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <div class="q-id">ID: <span contenteditable="true" data-qidx="${qIndex}" data-field="id">${q.id || ''}</span></div>
+                        <button class="btn btn-danger btn-small del-question-btn" data-qidx="${qIndex}">🗑️ 削除</button>
+                    </div>
+                </div>
+                <div class="curriculum-row">
+                    <span class="curriculum-label">📚 カリキュラム:</span>
+                    <span contenteditable="true" data-qidx="${qIndex}" data-field="curriculum">${escapeHtml(q.curriculum || '')}</span>
+                </div>
+                ${caseHtml}
+                <div class="q-text" contenteditable="true" data-qidx="${qIndex}" data-field="question_text">${q.question_text || ''}</div>
+                ${imagesHtml}
+                ${optionsHtml}
+                ${explanationHtml}
+                <div style="margin-top:20px; padding-top:20px; border-top:1px dashed #e2e8f0;">
+                    ${keywordsHtml}
+                    ${keywordLinksHtml}
+                    ${linksHtml}
+                </div>
+                <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+                    <label class="reviewed-toggle ${q.is_reviewed ? 'is-reviewed' : ''}">
+                        <input type="checkbox" class="is-reviewed-checkbox" data-qidx="${qIndex}" ${q.is_reviewed ? 'checked' : ''} style="margin: 0;">
+                        <span class="reviewed-text">${q.is_reviewed ? 'チェック済' : '未チェック'}</span>
+                    </label>
+                </div>
+            `;
+                container.appendChild(card);
+            });
+
+            attachEditListeners();
+            progressSection.style.display = '';
+            updateProgress();
+        }
+
+        function attachEditListeners() {
+            document.querySelectorAll('.q-type-select').forEach(sel => {
+                sel.addEventListener('change', (e) => {
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    currentData[qIdx].question_type = e.target.value;
+                });
+            });
+
+            document.querySelectorAll('[contenteditable="true"]').forEach(el => {
+                el.addEventListener('input', (e) => {
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    const field = e.target.getAttribute('data-field');
+                    const newText = e.target.innerText;
+
+                    if (field === 'options') {
+                        const optIdx = e.target.getAttribute('data-optidx');
+                        currentData[qIdx].options[optIdx] = newText;
+                    } else if (['image_paths', 'keywords', 'reference_links'].includes(field)) {
+                        const arrIdx = e.target.getAttribute('data-arridx');
+                        currentData[qIdx][field][arrIdx] = newText;
+                        if (field === 'keywords') {
+                            const card = document.getElementById('q-card-' + qIdx);
+                            const linksSection = card.querySelector('.keyword-links-section');
+                            if (linksSection) {
+                                const kwLinks = (currentData[qIdx].keywords || [])
+                                    .filter(k => k && k.trim())
+                                    .map(k => `<a href="https://www.google.com/search?q=${encodeURIComponent(k)}" target="_blank" rel="noopener noreferrer" class="keyword-link">${escapeHtml(k)}</a>`)
+                                    .join('');
+                                linksSection.innerHTML = kwLinks || '';
+                                linksSection.style.display = kwLinks ? '' : 'none';
+                            }
+                        }
+                    } else if (field === 'question_number' || field === 'edition') {
+                        currentData[qIdx][field] = Number(newText) || newText;
+                    } else {
+                        currentData[qIdx][field] = newText;
+                    }
+                    updateProgress();
+                });
+            });
+
+            // Markdown editor for explanation
+            document.querySelectorAll('.md-editor').forEach(el => {
+                el.addEventListener('input', (e) => {
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    currentData[qIdx].explanation = e.target.value;
+                    const card = document.getElementById('q-card-' + qIdx);
+                    const preview = card.querySelector('.md-preview');
+                    if (preview.style.display !== 'none') {
+                        preview.innerHTML = renderMarkdown(e.target.value);
+                    }
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                    updateProgress();
+                });
+            });
+
+            // Markdown tab toggle
+            document.querySelectorAll('.md-tab').forEach(tab => {
+                tab.addEventListener('click', (e) => {
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    const tabName = e.target.getAttribute('data-tab');
+                    const card = document.getElementById('q-card-' + qIdx);
+                    const editor = card.querySelector('.md-editor');
+                    const preview = card.querySelector('.md-preview');
+
+                    card.querySelectorAll('.md-tab').forEach(t => t.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    if (tabName === 'edit') {
+                        editor.style.display = '';
+                        editor.style.height = 'auto';
+                        editor.style.height = editor.scrollHeight + 'px';
+                        preview.style.display = 'none';
+                        editor.focus();
+                    } else {
+                        preview.innerHTML = renderMarkdown(editor.value);
+                        editor.style.display = 'none';
+                        preview.style.display = '';
+                    }
+                });
+            });
+
+            document.querySelectorAll('.option-toggle').forEach(toggle => {
+                toggle.addEventListener('click', (e) => {
+                    const qIdx = parseInt(e.target.getAttribute('data-qidx'));
+                    const optNum = parseInt(e.target.getAttribute('data-optnum'));
+                    const wrapper = e.target.parentElement;
+
+                    let correctOpts = currentData[qIdx].correct_options || [];
+                    if (correctOpts.includes(optNum)) {
+                        correctOpts = correctOpts.filter(n => n !== optNum);
+                        wrapper.classList.remove('correct');
+                    } else {
+                        correctOpts.push(optNum);
+                        correctOpts.sort((a, b) => a - b);
+                        wrapper.classList.add('correct');
+                    }
+                    currentData[qIdx].correct_options = correctOpts;
+                    currentData[qIdx].is_multiple_answers = correctOpts.length > 1;
+                    updateProgress();
+                });
+            });
+
+            document.querySelectorAll('.is-reviewed-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    const isChecked = e.target.checked;
+                    currentData[qIdx].is_reviewed = isChecked;
+
+                    const label = e.target.parentElement;
+                    const textSpan = label.querySelector('.reviewed-text');
+
+                    if (isChecked) {
+                        label.classList.add('is-reviewed');
+                        textSpan.textContent = 'チェック済';
+                    } else {
+                        label.classList.remove('is-reviewed');
+                        textSpan.textContent = '未チェック';
+                    }
+                    updateProgress();
+                });
+            });
+
+            document.querySelectorAll('.add-array-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    const field = e.target.getAttribute('data-field');
+                    if (!currentData[qIdx][field]) currentData[qIdx][field] = [];
+                    currentData[qIdx][field].push('');
+                    rerenderKeepingScroll();
+                });
+            });
+
+            document.querySelectorAll('.del-array-item').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    const field = e.target.getAttribute('data-field');
+                    const idx = e.target.getAttribute('data-idx');
+                    currentData[qIdx][field].splice(idx, 1);
+                    rerenderKeepingScroll();
+                });
+            });
+
+            document.querySelectorAll('.del-question-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (!confirm('この問題を本当に削除しますか？')) return;
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    currentData.splice(qIdx, 1);
+                    rerenderKeepingScroll();
+                });
+            });
+        }
+    </script>
+
+</body>
+
+</html>
