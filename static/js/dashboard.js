@@ -2,6 +2,9 @@ let subjectChart = null;
 let trendChart   = null;
 let lastStats    = null;
 
+// chartjs-plugin-datalabels は <script> タグ読み込みでも自動登録されないため明示的に登録する
+Chart.register(ChartDataLabels);
+
 function chartColors() {
   const light = document.documentElement.getAttribute('data-theme') === 'light';
   return {
@@ -262,7 +265,8 @@ function renderTrendChart(data) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}%` } } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}%` } },
+        datalabels: { display: false } },
       scales: {
         y: { min: 0, max: 100, ticks: { color: cc.tick, callback: v => v + '%' },
              grid: { color: cc.grid } },
