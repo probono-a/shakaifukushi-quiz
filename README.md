@@ -203,7 +203,7 @@ Gemini や Claude などに CSV を添付して「弱点を分析してくださ
 
 [PolyForm Noncommercial License 1.0.0](LICENSE) — 非商用利用のみ許可されています。
 
-効果音は [OtoLogic](https://otologic.jp) の素材を使用しています（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja)）。
+効果音は [OtoLogic](https://otologic.jp) の素材を使用しています。（[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja)）
 
 ---
 
