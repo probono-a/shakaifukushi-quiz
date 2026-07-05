@@ -73,7 +73,14 @@
       <div class="edit-field-label">選択肢（正答肢のボタンをクリックしてチェック） *</div>
       <div id="f-options"></div>
 
+      <div style="margin-top:1rem;text-align:right">
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-prompt">📋 AI解説依頼文をコピー</button>
+      </div>
+
       <div class="edit-field-label">解説（Markdown 可） *</div>
+      <div style="font-size:.78rem;color:var(--text-2);margin:-.15rem 0 .4rem">
+        上のボタンでコピーした依頼文を Gemini や ChatGPT に貼り付け、返ってきた文章をここに貼り付けてください。
+      </div>
       <div class="edit-md-tabs">
         <button type="button" class="edit-md-tab active" data-tab="edit">編集 (MD)</button>
         <button type="button" class="edit-md-tab" data-tab="preview">プレビュー</button>
