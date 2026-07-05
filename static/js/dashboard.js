@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadDashboard();
   document.getElementById('form-edit-id').addEventListener('submit', () => {
     const id = document.getElementById('input-edit-id').value.trim();
-    if (id) location.href = `/quiz.html?editId=${encodeURIComponent(id)}`;
+    if (id) location.href = `/editor.html?id=${encodeURIComponent(id)}`;
   });
 
   document.getElementById('btn-export').addEventListener('click', () => {

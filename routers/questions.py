@@ -42,6 +42,16 @@ def get_subjects():
     return [r["subject"] for r in rows]
 
 
+@router.get("/subjects/old")
+def get_old_subjects():
+    """旧カリキュラムの生の科目名一覧を返す（editor.html の科目プルダウン用）"""
+    with get_db() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT subject_old FROM subject_mapping ORDER BY subject_old"
+        ).fetchall()
+    return [r["subject_old"] for r in rows]
+
+
 WEAK_MIN_ATTEMPTS = 3
 
 
