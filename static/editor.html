@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>問題入力 — 社会福祉士過去問アプリ</title>
+  <meta name="description" content="社会福祉士国家試験の過去問をブラウザだけで登録できる入力フォーム。">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <script src="/js/theme.js"></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/markdown.js" defer></script>
+  <script src="/js/editor.js" defer></script>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="logo">社会福祉士<span>過去問</span>アプリ</div>
+    <nav class="nav">
+      <a href="/" class="nav-link">📊 ダッシュボード</a>
+      <a href="/editor.html" class="nav-link active">✏️ 問題入力</a>
+      <a href="/quiz.html" class="nav-link">📝 クイズ</a>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="テーマ切り替え">☀️</button>
+    </nav>
+  </div>
+</header>
+
+<main class="main">
+  <div class="container" style="max-width:820px">
+    <div class="card">
+      <div class="card-title">問題入力</div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem">
+        <div>
+          <div class="edit-field-label" style="margin-top:0">回次</div>
+          <input class="edit-input" id="f-edition" type="number" min="1" placeholder="例: 38">
+        </div>
+        <div>
+          <div class="edit-field-label" style="margin-top:0">カリキュラム</div>
+          <select class="edit-input" id="f-curriculum">
+            <option value="new">新</option>
+            <option value="old">旧</option>
+          </select>
+        </div>
+        <div style="grid-column:span 2">
+          <div class="edit-field-label" style="margin-top:0">科目</div>
+          <select class="edit-input" id="f-subject"></select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.9rem;margin-top:1rem">
+        <div>
+          <div class="edit-field-label" style="margin-top:0">問題番号</div>
+          <input class="edit-input" id="f-question-number" type="number" min="1" placeholder="例: 1">
+        </div>
+        <div>
+          <div class="edit-field-label" style="margin-top:0">問題タイプ</div>
+          <select class="edit-input" id="f-qtype">
+            <option value="通常">通常</option>
+            <option value="事例">事例</option>
+            <option value="不適切">不適切（全員正解）</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="edit-field-label">事例文（任意）</div>
+      <textarea class="edit-input" id="f-case" rows="3"></textarea>
+
+      <div class="edit-field-label">問題文 *</div>
+      <textarea class="edit-input" id="f-question-text" rows="4"></textarea>
+
+      <div class="edit-field-label">選択肢（正答肢のボタンをクリックしてチェック） *</div>
+      <div id="f-options"></div>
+
+      <div class="edit-field-label">解説（Markdown 可） *</div>
+      <div class="edit-md-tabs">
+        <button type="button" class="edit-md-tab active" data-tab="edit">編集 (MD)</button>
+        <button type="button" class="edit-md-tab" data-tab="preview">プレビュー</button>
+      </div>
+      <textarea class="edit-input" id="f-explanation" rows="8"></textarea>
+      <div class="edit-md-preview" id="f-expl-preview" style="display:none"></div>
+
+      <div class="edit-field-label">キーワード（Enter で追加）</div>
+      <div class="edit-kw-area" id="f-kw-area"></div>
+      <div class="edit-kw-input-row">
+        <input class="edit-input" id="f-kw-input" type="text" placeholder="キーワードを入力して Enter" style="flex:1">
+        <button type="button" class="btn btn-secondary btn-sm" id="f-kw-add">追加</button>
+      </div>
+
+      <div style="margin-top:1.75rem;text-align:right">
+        <button class="btn btn-primary btn-lg" id="btn-save">保存する</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+</body>
+</html>

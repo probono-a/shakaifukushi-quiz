@@ -1,8 +1,15 @@
+/** レスポンスが失敗の場合、body の detail を含んだ Error を投げる */
+async function throwIfNotOk(res, path) {
+  if (res.ok) return;
+  const detail = await res.json().then(d => d.detail).catch(() => null);
+  throw new Error(detail || `API ${res.status}: ${path}`);
+}
+
 /** 共通 API クライアント */
 const API = {
   async get(path) {
     const res = await fetch(path);
-    if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+    await throwIfNotOk(res, path);
     return res.json();
   },
   async post(path, body) {
@@ -11,7 +18,7 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+    await throwIfNotOk(res, path);
     return res.json();
   },
   async put(path, body) {
@@ -20,7 +27,7 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+    await throwIfNotOk(res, path);
     return res.json();
   },
   async patch(path, body = {}) {
@@ -29,7 +36,7 @@ const API = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+    await throwIfNotOk(res, path);
     return res.json();
   },
 };
