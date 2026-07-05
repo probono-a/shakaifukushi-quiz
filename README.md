@@ -14,7 +14,7 @@
 
 | ダッシュボード（ダークモード） | クイズ画面（ライトモード） | 問題入力画面 |
 | --- | --- | --- |
-|  |  |  |
+| ![Dashboard Dark Mode](docs/screenshots/dashboard_dark.png) | ![Quiz Light Mode](docs/screenshots/quiz_light.png) | ![Editor Dark Mode](docs/screenshots/editor_dark.png) |
 
 ---
 
