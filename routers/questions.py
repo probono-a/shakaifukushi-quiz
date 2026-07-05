@@ -253,6 +253,46 @@ def get_question(question_id: str):
     return _parse_question(row)
 
 
+@router.post("/questions")
+def create_question(body: dict = Body(...)):
+    edition = body.get("edition")
+    question_number = body.get("question_number")
+    if not edition or not question_number:
+        raise HTTPException(status_code=422, detail="edition と question_number は必須です")
+
+    question_id = f"{edition}_{question_number}"
+    correct_options = body.get("correct_options", [])
+
+    with get_db() as conn:
+        exists = conn.execute("SELECT id FROM questions WHERE id = ?", (question_id,)).fetchone()
+        if exists:
+            raise HTTPException(status_code=422, detail=f"ID '{question_id}' は既に登録されています")
+
+        conn.execute("""
+            INSERT INTO questions (
+                id, edition, subject, question_number, question_type, case_text, question_text,
+                is_multiple, options, correct_options, explanation, keywords, reference_links, curriculum
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            question_id,
+            edition,
+            body.get("subject"),
+            question_number,
+            body.get("question_type"),
+            body.get("case_text"),
+            body.get("question_text"),
+            1 if len(correct_options) > 1 else 0,
+            json.dumps(body.get("options", []), ensure_ascii=False),
+            json.dumps(correct_options, ensure_ascii=False),
+            body.get("explanation"),
+            json.dumps(body.get("keywords", []), ensure_ascii=False),
+            json.dumps(body.get("reference_links", []), ensure_ascii=False),
+            body.get("curriculum"),
+        ))
+        conn.commit()
+    return {"ok": True, "id": question_id}
+
+
 @router.put("/questions/{question_id}")
 def update_question(question_id: str, body: dict = Body(...)):
     with get_db() as conn:

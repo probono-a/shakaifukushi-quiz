@@ -189,7 +189,7 @@ function renderSubjectChart(data) {
         align: 'bottom',
         color: '#f59e0b',
         font: { size: 10, weight: '600' },
-        formatter: v => v != null ? `${v}s` : '',
+        formatter: v => v != null ? `${Math.round(v * 10) / 10}s` : '',
       },
     });
   }
@@ -221,7 +221,7 @@ function renderSubjectChart(data) {
         xTime: {
           position: 'top', min: 0, max: maxTime,
           display: hasTime,
-          ticks: { color: '#f59e0b', callback: v => v + 's' },
+          ticks: { color: '#f59e0b', callback: v => Math.round(v * 10) / 10 + 's' },
           grid: { display: false },
         },
         y: {

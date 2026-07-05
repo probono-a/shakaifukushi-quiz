@@ -1,188 +1,194 @@
 # 社会福祉士過去問アプリ
 
-社会福祉士国家試験の過去問を手元で繰り返し解くための、**完全ローカル動作**の学習支援ツールです。
+過去問を解いて、AI に解説を書いてもらって、繰り返し復習する。それだけの個人学習ツールです。
 
-- 🧠 **問題単位のトラッキング** — 解答履歴を SQLite に蓄積し、苦手問題を自動検出
-- 📊 **学習ダッシュボード** — 科目別正答率・時系列推移グラフをブラウザで可視化
-- 🎯 **今日のおすすめ機能** — 正答率が低く学習が疎かな科目を自動推薦
-- 🔄 **4 種のセッションモード** — ランダム N 問 / 科目指定 / 間違えた問題のみ / 模擬受験
-- ⬇️ **CSV エクスポート** — 学習記録を Gemini 等の外部 AI に渡して詳細分析
+## これは何？
 
-> **データについて**: 本リポジトリに問題データは含まれていません。PDF からのデータ作成フロー（下記）に従って自分でデータを用意する必要があります。
+社会福祉士国家試験の過去問をブラウザで繰り返し解けるアプリです。解答履歴が自動で記録され、苦手な科目や問題がダッシュボードに表示されます。問題データはお手元で入力していただく形式で、プログラミングの知識は不要です。
+
+> **データについて**: 本リポジトリに問題データは含まれていません。下記の手順に沿って、ご自身で問題を入力してください。
 
 ---
 
 ## スクリーンショット
 
-| ダッシュボード（ダークモード） | クイズ画面（ライトモード） |
-| --- | --- |
-| ![Dashboard Dark Mode](docs/screenshots/dashboard_dark.png) | ![Quiz Light Mode](docs/screenshots/quiz_light.png) |
-
----
-
-## 必要な環境
-
-| ツール | バージョン | 用途 |
+| ダッシュボード（ダークモード） | クイズ画面（ライトモード） | 問題入力画面 |
 | --- | --- | --- |
-| Python | 3.11 以上 | バックエンド API |
-| [uv](https://docs.astral.sh/uv/) | 最新 | 仮想環境・パッケージ管理 |
-| Google Chrome / Edge | 最新 | フロントエンド表示 |
-
-> `uv` のインストール: `pip install uv` または [公式手順](https://docs.astral.sh/uv/#getting-started)
+|  |  |  |
 
 ---
 
-## セットアップ
+## 使い方
 
-### Windows
+### ステップ 1: Python と uv をインストールする（初回のみ）
 
-```bat
-git clone https://github.com/kentaro-anno/shakaifukushi-quiz.git
-cd shakaifukushi-quiz
-setup.bat
+1. [Python 公式サイト](https://www.python.org/downloads/)から Python 3.11 以上をダウンロードしてインストールします。インストール時に「Add python.exe to PATH」にチェックを入れてください。
+  
+2. コマンドプロンプトまたは PowerShell を開き、以下を実行して `uv` をインストールします。
+  
+
+
+
+```
+pip install uv
 ```
 
-### Linux (Ubuntu 等)
+
+### ステップ 2: アプリを入手する（初回のみ）
+
+1. このページ上部の緑色の **Code** ボタン → **Download ZIP** をクリックします。
+2. ダウンロードした ZIP ファイルを、デスクトップなど分かりやすい場所に展開（解凍）します。
+
+### ステップ 3: セットアップして起動する（初回のみ）
+
+1. 展開したフォルダの中にある `setup.bat` をダブルクリックします。黒い画面が表示され、セットアップが進みます。「セットアップが完了しました」と表示されたら、何かキーを押して閉じます。
+  
+2. 同じフォルダの `run.bat` をダブルクリックします。サーバーが起動したままの状態になり、数秒後に自動でブラウザが開いてダッシュボード画面が表示されます（この画面は閉じずに残しておいてください）。
+  
+
+
+
+自動で開かない場合は、ブラウザのアドレスバーに次の URL を入力してアクセスしてください。
+
+```
+http://localhost:8000/
+```
+
+
+> 2 回目以降は `run.bat` をダブルクリックするだけで起動できます。（`setup.bat` は初回のみで OK です。）  
+> サーバーを止めたいときは `run.bat` の黒い画面を閉じるか、`stop.bat` を実行してください。
+
+### ステップ 4: 問題を入力する
+
+まだ問題データが 1 つもない状態なので、まずは過去問を入力しましょう。画面上部の **「✏️ 問題入力」** から入力フォームを開き、過去問を見ながら入力します（詳しくは下記「問題の入力方法」）。
+
+### ステップ 5: クイズで復習する
+
+画面上部の **「📝 クイズ」** から出題モードを選んで、解いた問題を復習できます。ダッシュボードでは正答率や苦手科目が自動集計されます。
+
+---
+
+## 問題の入力方法（詳細）
+
+1. 画面上部の **「✏️ 問題入力」** を開きます。
+  
+2. お手元の過去問（試験団体が配布している PDF や問題集など）を見ながら、回次・科目・問題文・選択肢・正解を入力します。
+  
+3. 選択肢の左にある番号ボタンをクリックすると、正解としてチェックが付きます（複数正解の問題は 2 つクリックしてください）。
+  
+4. **解説**は自分で書く代わりに、Gemini や ChatGPT などの AI チャットに次のように頼んで、返ってきた文章をコピペすると簡単です。
+  
+
+
+
+> 社会福祉士国家試験の次の問題について、各選択肢がなぜ正しい／誤りなのかを解説してください。
+> 
+>
+> 
+> （問題文と選択肢を貼り付ける）
+
+5. **キーワード**を入れておくと、クイズの解答後にそのキーワードで Google 検索できるリンクが自動で表示されます。
+  
+6. 入力し終えたら「保存する」をクリックします。保存に成功するとフォームがリセットされ、続けて次の問題を入力できます。
+  
+
+
+
+
+登録済みの問題を間違えて入力してしまった場合は、ダッシュボードの **「ID で編集」** 欄に問題 ID（`回次_問題番号`、例: `38_1`）を入力すると編集画面が開きます。
+
+---
+
+## よくある質問
+
+**Q. `run.bat` を実行してもブラウザが自動で開きません。**  
+A. サーバー起動から数秒後に自動で開きます。それでも開かない場合は、ブラウザで `http://localhost:8000/` を手入力（またはブックマーク）してアクセスしてください。
+
+**Q. サーバーが起動しない・エラーが出る。**  
+A. `setup.bat` を実行し忘れていないか確認してください。また、別のアプリがポート 8000 を使用している場合があります。`stop.bat` を実行してから `run.bat` を再度実行してください。
+
+**Q. ダッシュボードに「データがありません」と表示される。**  
+A. まだ問題が 1 問も登録されていない状態です。「問題の入力方法」を参考に、まず何問か登録してください。
+
+**Q. 問題を削除したい。**  
+A. 現在、画面から問題を削除する機能はありません。誤って登録した場合は「ID で編集」から内容を修正してください。
+
+---
+
+## 開発者向け
+
+ここから先は、コマンドラインや Git に慣れている方向けの情報です。
+
+### PDF から一括で問題データを作成したい場合
+
+`converter/` のスクリプト群と Claude Code を使って、PDF/HTML の過去問を一括でデータ化できます。手順は [docs/data-pipeline.md](docs/data-pipeline.md) を参照してください。
+
+### Linux での起動
 
 ```bash
-git clone https://github.com/kentaro-anno/shakaifukushi-quiz.git
-cd shakaifukushi-quiz
 chmod +x *.sh
-./setup.sh
-```
-
-### 仮想環境の有効化（任意）
-
-コマンドを直接実行したい場合は、仮想環境を有効化するか、`uv run` を使用してください。
-
-#### 仮想環境に入る
-
-- **Windows**: `.venv\Scripts\activate`
-- **Linux**: `source .venv/bin/activate`
-
-#### 有効化せずに実行（推奨）
-
-コマンドの前に `uv run` をつけるだけで、自動的に仮想環境が使用されます。
-
-```bash
-uv run python --version
-```
-
----
-
-## データの準備
-
-問題データは次の 5 ステップで作成します。ステップ 3 のみ Claude Code が担当し、それ以外は人間がコマンドを実行します。
-
-### Step 1: 問題ファイルをダウンロード
-
-```powershell
-.venv\Scripts\python tools/download_pdfs_from_jaswe.py
-```
-
-取得元と形式は回号によって異なります。`data/pdf/{edition}th/` に保存されます。
-
-| 回号 | 問題ファイル | 正答ファイル | 取得元 |
-| --- | --- | --- | --- |
-| 第 36 回以降 | 音声読み上げ用 HTML (`listen_s*_am/pm_NN.html`) | `s_kijun_seitou_NN.pdf` | [社会福祉振興・試験センター](https://www.sssc.or.jp/shakai/past_exam/index.html) |
-| 第 35 回以前 | 問題 PDF | 正答 PDF | [日本ソーシャルワーク教育学校連盟](https://jaswe.jp/kokushiinfo.html) |
-
-### Step 2: スキャフォールド JSON を生成
-
-**パス A: HTML 源（第 36 回以降）**
-
-```powershell
-.venv\Scripts\python converter/html_to_scaffold_json.py `
-  --html    data/pdf/37th/listen_ss_am_37.html `
-  --answers data/pdf/37th/s_kijun_seitou_37.pdf `
-  --edition 37 `
-  --out     tmp/37_am
-```
-
-**パス B: 画像 PDF 源（第 35 回以前）**
-
-```powershell
-.venv\Scripts\python converter/pdf_to_scaffold_json.py `
-  --source-dir data/pdf/35th `
-  --edition    35
-```
-
-`--source-dir` 内の PDF を自動検出します。正答 PDF はファイル名に `seitou` または `answer` を含むものが対象です。`--out` / `--png-dir` を省略すると `tmp/{edition}th` / `scratch/{edition}th` が使われます。
-
-`tmp/{edition}th/` 配下に科目別 JSON が、`scratch/{edition}th/` に全ページ PNG が出力されます（Claude の視覚読み取り用）。
-
-### Step 3: Claude Code でデータを補完
-
-Claude Code を起動し、以下のパスに応じた指示文を貼り付けて実行します。
-
-**パス A（第 36 回以降）**: `html_to_scaffold_json.py` の完了時に出力されるプロンプト文を貼り付けます。
-
-> Claude が `tmp/{edition}_{file}/` の科目別 JSON に `explanation` と `keywords` を科目ごとにパッチスクリプト経由で追記します。
-
-**パス B（第 35 回以前）**: `pdf_to_scaffold_json.py` の完了時に出力されるプロンプト文を貼り付けます。
-
-> Claude が `scratch/{png-dir}/` の PNG を視覚で読み取り、`tmp/{edition}_{file}/` の科目別 JSON に `question_text`・`options`・`case_text`・`explanation`・`keywords` をすべて科目ごとにパッチスクリプト経由で書き込みます。
-
-### Step 4: テキスト正規化
-
-```powershell
-.venv\Scripts\python converter/normalize_text.py tmp/37_am
-```
-
-ディレクトリを指定すると配下の全 JSON に一括適用されます。
-
-### Step 5: 人間による最終確認と DB インポート
-
-1. **専用エディタを開く**: `tools/quiz_editor.html` をブラウザで直接開きます。
-
-2. JSON をエディタで開き、目視で内容を確認・微修正します。
-
-3. 確認が済んだ問題の `is_reviewed` フラグを `true` にして保存します。
-
-4. 以下のコマンドで、確認済み（`is_reviewed: true`）のデータのみを DB に取り込みます。
-
-```powershell
-.venv\Scripts\python converter/import_json.py
-```
-
-既存データとの重複は自動でスキップされます。
-
----
-
-## アプリの起動
-
-### Windows
-
-```bat
-run.bat
-```
-
-### Linux (Ubuntu 等)
-
-```bash
+./setup.sh   # 初回のみ
 ./run.sh
 ```
 
-- ブラウザで [http://localhost:8000/](http://localhost:8000/) を開いてください。
-- **自動プロセス掃除**: 起動時にポート 8000 を使用している古いプロセスがあれば、自動的に終了させてから起動します。
-- **強制終了**: 万が一プロセスが残ってしまった場合は、Windows なら `stop.bat`、Linux なら `./stop.sh` を実行してください。
+### プロジェクト構成
 
-| URL | 内容 |
-| --- | --- |
-| `http://localhost:8000/` | ダッシュボード |
-| `http://localhost:8000/quiz.html` | クイズ（セッション設定） |
-| `http://localhost:8000/docs` | API ドキュメント (Swagger UI) |
+```
+shakaifukushi-quiz/
+├── main.py                     # FastAPI エントリーポイント
+├── db.py                       # SQLite 接続ヘルパー
+├── routers/
+│   ├── questions.py            # /api/subjects, /api/editions, /api/questions
+│   ├── sessions.py             # POST /api/sessions, PATCH /api/sessions/{id}
+│   ├── history.py              # POST /api/history, GET /api/history/export
+│   ├── stats.py                # GET /api/stats
+│   ├── recommend.py            # GET /api/recommend
+│   └── link_preview.py         # GET /api/link-preview
+├── static/
+│   ├── index.html              # ダッシュボード
+│   ├── quiz.html                # クイズ画面
+│   ├── editor.html              # 問題入力フォーム
+│   ├── css/style.css           # デザインシステム（ダーク / ライトモード対応）
+│   └── js/
+│       ├── api.js              # 共通 API クライアント
+│       ├── theme.js            # ライト / ダークモード切り替え
+│       ├── markdown.js         # 簡易 Markdown レンダラー
+│       ├── sound.js            # 効果音
+│       ├── dashboard.js        # ダッシュボード描画
+│       ├── quiz.js             # クイズ全フロー
+│       └── editor.js           # 問題入力フォームのロジック
+├── converter/                   # データパイプライン用スクリプト（詳細は docs/data-pipeline.md）
+├── tools/
+│   └── quiz_editor.html        # JSON 確認・修正 GUI（データパイプライン用）
+├── data/                        # SQLite DB・PDF・JSON（すべて Git 管理外）
+├── docs/
+│   ├── data-pipeline.md        # データパイプラインの詳細ガイド
+│   ├── screenshots/            # README 用スクリーンショット
+│   └── dev/                    # 開発・内部ドキュメント
+├── setup.bat / setup.sh         # 初回セットアップ
+├── run.bat / run.sh             # アプリ起動
+└── stop.bat / stop.sh           # プロセス強制終了
+```
 
----
+### API エンドポイント一覧
 
-## セッションモード
+| メソッド | パス | 説明 |
+| --- | --- | --- |
+| GET | `/api/subjects` | 科目一覧 |
+| GET | `/api/editions` | エディション（回号）一覧 |
+| GET | `/api/questions` | 問題取得（モード・科目・問題数でフィルタ） |
+| GET | `/api/questions/{id}` | 問題 1 件取得 |
+| POST | `/api/questions` | 問題の新規登録 |
+| PUT | `/api/questions/{id}` | 問題の編集 |
+| POST | `/api/sessions` | セッション作成 |
+| PATCH | `/api/sessions/{id}` | セッション終了 |
+| POST | `/api/history` | 解答記録 |
+| GET | `/api/history/export` | 学習履歴 CSV ダウンロード |
+| GET | `/api/stats` | ダッシュボード用統計データ |
+| GET | `/api/recommend` | 今日のおすすめセッション |
+| GET | `/api/link-preview` | 参考リンクのプレビュー情報取得 |
 
-| モード | 内容 |
-| --- | --- |
-| **ランダム N 問** | 選んだ科目からランダムに N 問出題 |
-| **科目指定** | 選んだ科目の全問を出題 |
-| **間違えた問題のみ** | 過去に 1 度でも不正解だった問題に絞って出題 |
-| **模擬受験** | 特定の回の全問を通しで解く |
+API ドキュメント（Swagger UI）はサーバー起動中に [http://localhost:8000/docs](http://localhost:8000/docs) で確認できます。
 
 ---
 
@@ -193,80 +199,16 @@ Gemini や Claude などに CSV を添付して「弱点を分析してくださ
 
 ---
 
-## プロジェクト構成
-
-```
-shakaifukushi-quiz/
-├── main.py                     # FastAPI エントリーポイント
-├── db.py                       # SQLite 接続ヘルパー
-├── routers/
-│   ├── questions.py            # GET /api/subjects, /api/editions, /api/questions
-│   ├── sessions.py             # POST /api/sessions, PATCH /api/sessions/{id}
-│   ├── history.py              # POST /api/history, GET /api/history/export
-│   ├── stats.py                # GET /api/stats
-│   └── recommend.py            # GET /api/recommend
-├── static/
-│   ├── index.html              # ダッシュボード
-│   ├── quiz.html               # クイズ画面
-│   ├── css/style.css           # デザインシステム（ダーク / ライトモード対応）
-│   └── js/
-│       ├── api.js              # 共通 API クライアント
-│       ├── theme.js            # ライト / ダークモード切り替え
-│       ├── dashboard.js        # ダッシュボード描画
-│       └── quiz.js             # クイズ全フロー
-├── converter/
-│   ├── download_pdfs.py        # PDF 自動ダウンロード
-│   ├── import_json.py          # JSON → SQLite インポート
-│   └── validate_quiz_json.py   # JSON バリデーション
-├── tools/
-│   └── quiz_editor.html        # JSON 確認・修正 GUI
-├── prompts/
-│   └── pdf_to_json.md          # AI 抽出プロンプト
-├── data/
-│   ├── pdf/                    # ダウンロードした PDF（Git 管理外）
-│   ├── images/                 # 変換後の画像（Git 管理外）
-│   ├── json/                   # 抽出・レビュー済み JSON（Git 管理外）
-│   └── quiz.db                 # SQLite DB（Git 管理外）
-├── docs/
-│   ├── app_requirement.md      # 要件定義
-│   ├── implementation_plan.md  # 実装計画
-│   └── screenshots/            # README 用スクリーンショット
-├── setup.bat                   # 初回セットアップ (Windows)
-├── setup.sh                    # 初回セットアップ (Linux)
-├── run.bat                     # アプリ起動 (Windows)
-├── run.sh                      # アプリ起動 (Linux)
-├── stop.bat                    # プロセス強制終了 (Windows)
-└── stop.sh                     # プロセス強制終了 (Linux)
-```
-
----
-
-## API エンドポイント一覧
-
-| メソッド | パス | 説明 |
-| --- | --- | --- |
-| GET | `/api/subjects` | 科目一覧 |
-| GET | `/api/editions` | エディション（回号）一覧 |
-| GET | `/api/questions` | 問題取得（モード・科目・問題数でフィルタ） |
-| POST | `/api/sessions` | セッション作成 |
-| PATCH | `/api/sessions/{id}` | セッション終了 |
-| POST | `/api/history` | 解答記録 |
-| GET | `/api/history/export` | 学習履歴 CSV ダウンロード |
-| GET | `/api/stats` | ダッシュボード用統計データ |
-| GET | `/api/recommend` | 今日のおすすめセッション |
-
----
-
 ## ライセンス
 
-[MIT License](LICENSE)
+[PolyForm Noncommercial License 1.0.0](LICENSE) — 非商用利用のみ許可されています。
 
 ---
 
-## ⚠️注意事項
+## ⚠️ 注意事項
 
-- 本アプリは個人学習目的のツールです
-- 商用利用や大規模なデータ収集には使用しないでください
-- 問題データの著作権は各権利者に帰属します
+- 本アプリは個人学習目的のツールです。
+- ライセンス上、商用利用は許可されていません。（詳細は [LICENSE](LICENSE) を参照）大規模なデータ収集にも使用しないでください。
+- 問題データの著作権は各権利者に帰属します。（本アプリのライセンスとは別に、各試験団体の著作権が適用されます。）
 - データの再配布はしないでください。
-- 外部サーバーへの通信は行いません（フォント・Chart.js は CDN を使用）
+- 外部サーバーへの通信は行いません。（フォント・Chart.js は CDN を使用）
