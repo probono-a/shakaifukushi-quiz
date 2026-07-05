@@ -1,0 +1,6 @@
+`prompts/pdf_to_json.md` の指示に従い、以下のパスの PNG を視覚で読み取りながら、科目別スキャフォールド JSON に question_text・options・case_text・question_type・explanation・keywords をすべて追記してください。
+
+  PNG ディレクトリ : scratch/{edition}_{file}/
+  JSON ディレクトリ: tmp/{edition}_{file}/
+
+対象ディレクトリが不明な場合は、処理を開始する前に確認してください。

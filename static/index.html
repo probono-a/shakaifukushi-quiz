@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ダッシュボード — 社会福祉士過去問アプリ</title>
+  <meta name="description" content="社会福祉士国家試験 過去問学習アプリのダッシュボード。正答率・科目別分析・苦手問題などを確認できます。">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <script src="/js/theme.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/dashboard.js" defer></script>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="logo">社会福祉士<span>過去問</span>アプリ</div>
+    <nav class="nav">
+      <a href="/" class="nav-link active">📊 ダッシュボード</a>
+      <a href="/quiz.html" class="nav-link">📝 クイズ</a>
+      <form id="form-edit-id" style="display:flex;gap:.35rem;align-items:center" onsubmit="return false">
+        <input id="input-edit-id" type="text" placeholder="ID で編集…" style="width:9rem;padding:.3rem .6rem;font-size:.82rem;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);outline:none">
+        <button type="submit" class="btn btn-secondary btn-sm">編集</button>
+      </form>
+      <button class="btn btn-secondary btn-sm" id="btn-export">⬇ CSV 出力</button>
+      <button class="btn btn-sm" id="btn-reset-history" style="background:var(--danger-dim);color:var(--danger);border:1px solid rgba(248,113,113,.3)">🗑 履歴リセット</button>
+      <button class="btn-theme" id="btn-theme" onclick="toggleTheme()" title="テーマ切り替え">☀️</button>
+    </nav>
+  </div>
+</header>
+
+<main class="main">
+  <!-- ローディング -->
+  <div id="loading-overlay" class="loading">
+    <div class="spinner"></div>データを読み込み中…
+  </div>
+
+  <div id="dashboard-body" class="hidden">
+    <div class="container">
+
+      <!-- おすすめセッション -->
+      <div id="rec-section" class="gap hidden">
+        <div class="rec-card">
+          <div class="rec-icon">🎯</div>
+          <div class="rec-body">
+            <div class="rec-label">今日のおすすめ</div>
+            <div class="rec-title">苦手科目を重点的に復習しよう</div>
+            <div class="rec-tags" id="rec-subjects"></div>
+            <div class="text-muted" id="rec-stats" style="font-size:.8rem;margin-top:.5rem"></div>
+          </div>
+          <button class="btn btn-primary btn-lg" id="btn-rec-start">学習を始める →</button>
+        </div>
+      </div>
+
+      <!-- 概要スタット -->
+      <div class="grid-4 gap">
+        <div class="card stat-card">
+          <div class="card-title">総解答数</div>
+          <div class="stat-value" id="stat-total">—</div>
+          <div class="stat-sub">問</div>
+        </div>
+        <div class="card stat-card c-success">
+          <div class="card-title">正解数</div>
+          <div class="stat-value text-success" id="stat-correct">—</div>
+          <div class="stat-sub">問</div>
+        </div>
+        <div class="card stat-card c-teal">
+          <div class="card-title">総正答率</div>
+          <div class="stat-value" id="stat-accuracy">—</div>
+        </div>
+        <div class="card stat-card">
+          <div class="card-title">カリキュラム別</div>
+          <div style="display:flex;gap:1rem;align-items:flex-end;margin-top:.25rem">
+            <div>
+              <div style="font-size:.7rem;color:var(--text-3)">新</div>
+              <div class="stat-value" id="stat-new-cur" style="font-size:1.6rem">—</div>
+            </div>
+            <div>
+              <div style="font-size:.7rem;color:var(--text-3)">旧</div>
+              <div class="stat-value" id="stat-old-cur" style="font-size:1.6rem">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 本番予想時間 -->
+      <div class="card gap" id="exam-pred-card" style="display:none">
+        <div class="section-hd">
+          <div class="section-title">本番予想時間 (社会福祉士・129 問 / 225 分)</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:2rem;flex-wrap:wrap;padding:.25rem 0">
+          <div>
+            <div style="font-size:.72rem;color:var(--text-2);margin-bottom:.2rem">１問あたり平均</div>
+            <div style="font-size:1.6rem;font-weight:700;color:var(--text)" id="pred-avg-time">—</div>
+          </div>
+          <div style="font-size:1.5rem;color:var(--text-2)">× 129 問</div>
+          <div>
+            <div style="font-size:.72rem;color:var(--text-2);margin-bottom:.2rem">予想所要時間</div>
+            <div style="font-size:1.6rem;font-weight:700" id="pred-total-time">—</div>
+          </div>
+          <div id="pred-comment" style="font-size:.82rem;color:var(--text-2);border-left:2px solid var(--border);padding-left:1rem;line-height:1.6"></div>
+        </div>
+      </div>
+
+      <!-- グラフ -->
+      <div class="grid-2 gap">
+        <div class="card">
+          <div class="section-hd">
+            <div class="section-title">科目別正答率</div>
+          </div>
+          <div class="chart-wrap" style="height:320px">
+            <canvas id="chart-subject"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="section-hd">
+            <div class="section-title">正答率の推移（直近 30 日）</div>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chart-trend"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- テーブル -->
+      <div class="grid-2 gap">
+        <div class="card">
+          <div class="section-hd">
+            <div class="section-title">苦手問題 TOP 10</div>
+            <span class="text-muted" style="font-size:.78rem">3 回以上解答した問題</span>
+            <a href="/quiz.html?mode=weak" id="btn-weak-session" class="btn btn-primary btn-sm hidden">苦手問題を解く →</a>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>ID</th><th>科目</th><th>問題文</th><th>正答率</th></tr></thead>
+            <tbody id="weak-tbody"><tr><td colspan="4"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <div class="section-hd">
+            <div class="section-title">直近のセッション</div>
+          </div>
+          <table class="tbl">
+            <thead><tr><th>日時</th><th>モード</th><th>問題数</th><th>正答率</th></tr></thead>
+            <tbody id="session-tbody"><tr><td colspan="4"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+          </table>
+          <div style="margin-top:1.25rem;text-align:right">
+            <a href="/quiz.html" class="btn btn-primary">新しいセッションを始める →</a>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /container -->
+  </div><!-- /dashboard-body -->
+</main>
+
+</body>
+</html>
