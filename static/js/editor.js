@@ -103,6 +103,43 @@ function attachListeners() {
   );
 
   document.getElementById('btn-save').addEventListener('click', saveQuestion);
+  document.getElementById('btn-copy-prompt').addEventListener('click', copyExplanationPrompt);
+}
+
+function buildExplanationPrompt(questionText, caseText, options) {
+  const lines = [
+    '社会福祉士国家試験の次の問題について、各選択肢がなぜ正しい／誤りなのかを解説してください。',
+    '',
+    '- 出力は Markdown 形式で、そのままコピーできるようにコードブロックに入れてください。',
+    '- 冒頭に正解を「**正解: n**」のように太字で示してください。',
+    '- 「### 選択肢 1」のように選択肢ごとに見出しを付けて解説してください。',
+    '',
+  ];
+  if (caseText) lines.push('【事例文】', caseText, '');
+  lines.push('【問題文】', questionText, '', '【選択肢】');
+  options.forEach((opt, i) => lines.push(`${i + 1}. ${opt}`));
+  if (draft.correct_options.length) {
+    lines.push('', `【正解】${draft.correct_options.join('、')}`);
+  }
+  return lines.join('\n');
+}
+
+async function copyExplanationPrompt() {
+  const questionText = document.getElementById('f-question-text').value.trim();
+  const options = draft.options.map(o => o.trim()).filter(o => o);
+
+  if (!questionText) { showToast('先に問題文を入力してください', 'error'); return; }
+  if (options.length < 2) { showToast('先に選択肢を 2 つ以上入力してください', 'error'); return; }
+
+  const caseText = document.getElementById('f-case').value.trim();
+  const prompt = buildExplanationPrompt(questionText, caseText, options);
+
+  try {
+    await navigator.clipboard.writeText(prompt);
+    showToast('AI 解説依頼文をコピーしました', 'success');
+  } catch (e) {
+    showToast('コピーに失敗しました。手動でコピーしてください', 'error');
+  }
 }
 
 function resetForm() {
