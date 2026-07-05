@@ -45,3 +45,22 @@ function renderMarkdown(text) {
     .replace(/\[(.+?)\]\((.+?)\)/g, (m, label, url) =>
       /^https?:\/\//i.test(url) ? `<a href="${url}" target="_blank" rel="noopener">${label}</a>` : m);
 }
+
+/** AI に解説を依頼するためのプロンプト文を組み立てる */
+function buildExplanationPrompt(questionText, caseText, options, correctOptions) {
+  const lines = [
+    '社会福祉士国家試験の次の問題について、各選択肢がなぜ正しい／誤りなのかを解説してください。',
+    '',
+    '- 出力は Markdown 形式で、そのままコピーできるようにコードブロックに入れてください。',
+    '- 冒頭に正解を「**正解: n**」のように太字で示してください。',
+    '- 「### 選択肢 1」のように選択肢ごとに見出しを付けて解説してください。',
+    '',
+  ];
+  if (caseText) lines.push('【事例文】', caseText, '');
+  lines.push('【問題文】', questionText, '', '【選択肢】');
+  options.forEach((opt, i) => lines.push(`${i + 1}. ${opt}`));
+  if (correctOptions && correctOptions.length) {
+    lines.push('', `【正解】${correctOptions.join('、')}`);
+  }
+  return lines.join('\n');
+}
