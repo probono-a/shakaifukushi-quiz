@@ -21,6 +21,7 @@ async function loadSubjects() {
     subjects.forEach(s => sel.add(new Option(s, s)));
   } catch (e) {
     console.error(e);
+    showToast('科目一覧の読み込みに失敗しました。ページを再読み込みしてください', 'error');
   }
 }
 
@@ -130,12 +131,17 @@ async function saveQuestion() {
   const questionNumber = Number(document.getElementById('f-question-number').value);
   const questionText = document.getElementById('f-question-text').value.trim();
   const explanation = document.getElementById('f-explanation').value.trim();
-  const filledOptions = draft.options.filter(o => o.trim());
+
+  // 末尾の空欄は落として保存する（途中に空欄があると正答肢の番号がずれるためエラー）
+  const options = draft.options.map(o => o.trim());
+  while (options.length && !options[options.length - 1]) options.pop();
 
   if (!edition || !questionNumber) { showToast('回次と問題番号を入力してください', 'error'); return; }
   if (!questionText) { showToast('問題文を入力してください', 'error'); return; }
-  if (filledOptions.length < 2) { showToast('選択肢を 2 つ以上入力してください', 'error'); return; }
+  if (options.length < 2) { showToast('選択肢を 2 つ以上入力してください', 'error'); return; }
+  if (options.some(o => !o)) { showToast('選択肢は上から詰めて入力してください（途中に空欄があります）', 'error'); return; }
   if (!draft.correct_options.length) { showToast('正答肢を 1 つ以上選択してください', 'error'); return; }
+  if (draft.correct_options.some(n => n > options.length)) { showToast('空欄の選択肢が正答肢に指定されています', 'error'); return; }
   if (!explanation) { showToast('解説を入力してください', 'error'); return; }
 
   const body = {
@@ -146,7 +152,7 @@ async function saveQuestion() {
     question_type: document.getElementById('f-qtype').value,
     case_text: document.getElementById('f-case').value.trim(),
     question_text: questionText,
-    options: draft.options,
+    options,
     correct_options: draft.correct_options,
     explanation,
     keywords: draft.keywords,
