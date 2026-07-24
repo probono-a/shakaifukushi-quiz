@@ -8,8 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # 開発サーバー起動 (Windows — ポート 8000 の既存プロセスを終了してブラウザを開く)
 run.bat
 
-# 手動起動
-uv run uvicorn main:app --reload --port 8000
+# 手動起動 (pyproject.toml がないため、uv run は .venv を使わない。.venv の python を直接呼ぶ)
+.venv\Scripts\python.exe -m uvicorn main:app --reload --port 8000
 
 # サーバー停止
 stop.bat
