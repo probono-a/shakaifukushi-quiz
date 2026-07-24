@@ -53,7 +53,7 @@ data/quiz.db
 #### 1. ダウンロード
 
 ```powershell
-uv run python converter/download_pdfs.py --edition 38
+.venv\Scripts\python.exe converter/download_pdfs.py --edition 38
 ```
 
 社会福祉振興・試験センターから、音声読み上げ用 HTML（`listen_s*_am/pm_NN.html`）と正答 PDF（`s_kijun_seitou_NN.pdf`）を `data/pdf/38th/` に取得します。
@@ -61,7 +61,7 @@ uv run python converter/download_pdfs.py --edition 38
 #### 2. スキャフォールド JSON を生成
 
 ```powershell
-uv run python converter/html_to_scaffold_json.py `
+.venv\Scripts\python.exe converter/html_to_scaffold_json.py `
   --html    data/pdf/38th/listen_ss_am_38.html `
   --answers data/pdf/38th/s_kijun_seitou_38.pdf `
   --edition 38 `
@@ -77,9 +77,9 @@ Claude Code を起動し、[`docs/dev/prompts/pdf_to_json.md`](dev/prompts/pdf_t
 #### 4. マージ・正規化・検証
 
 ```powershell
-uv run python converter/merge_subject_json.py --dir tmp/38_am --out data/json/38th/listen_ss_am_38.json
-uv run python converter/normalize_text.py data/json/38th/listen_ss_am_38.json
-uv run python converter/validate_quiz_json.py data/json/38th/listen_ss_am_38.json
+.venv\Scripts\python.exe converter/merge_subject_json.py --dir tmp/38_am --out data/json/38th/listen_ss_am_38.json
+.venv\Scripts\python.exe converter/normalize_text.py data/json/38th/listen_ss_am_38.json
+.venv\Scripts\python.exe converter/validate_quiz_json.py data/json/38th/listen_ss_am_38.json
 ```
 
 `validate_quiz_json.py` が警告を出した場合は、該当箇所を JSON 内で直接修正してから次に進みます。
@@ -91,7 +91,7 @@ uv run python converter/validate_quiz_json.py data/json/38th/listen_ss_am_38.jso
 #### 1. ダウンロード
 
 ```powershell
-uv run python converter/download_pdfs.py --edition 35
+.venv\Scripts\python.exe converter/download_pdfs.py --edition 35
 ```
 
 日本ソーシャルワーク教育学校連盟から、問題 PDF・正答 PDF を `data/pdf/35th/` に取得します（回によっては手動配置が必要な場合があります）。
@@ -99,7 +99,7 @@ uv run python converter/download_pdfs.py --edition 35
 #### 2. スキャフォールド JSON + PNG を生成
 
 ```powershell
-uv run python converter/pdf_to_scaffold_json.py --source-dir data/pdf/35th --edition 35
+.venv\Scripts\python.exe converter/pdf_to_scaffold_json.py --source-dir data/pdf/35th --edition 35
 ```
 
 `--source-dir` 内の PDF を自動検出します（正答 PDF はファイル名に `seitou` または `answer` を含むもの）。`--out` / `--png-dir` を省略すると `tmp/{edition}th` / `scratch/{edition}th` が使われます。`--scale`（デフォルト 2.0 = 144DPI）で PNG 解像度を調整できます。
@@ -113,9 +113,9 @@ Claude Code を起動し、[`docs/dev/prompts/pdf_to_json.md`](dev/prompts/pdf_t
 #### 4. マージ・正規化・検証
 
 ```powershell
-uv run python converter/merge_subject_json.py --dir tmp/35th --out data/json/35th/exam_35th.json
-uv run python converter/normalize_text.py data/json/35th/exam_35th.json
-uv run python converter/validate_quiz_json.py data/json/35th/exam_35th.json
+.venv\Scripts\python.exe converter/merge_subject_json.py --dir tmp/35th --out data/json/35th/exam_35th.json
+.venv\Scripts\python.exe converter/normalize_text.py data/json/35th/exam_35th.json
+.venv\Scripts\python.exe converter/validate_quiz_json.py data/json/35th/exam_35th.json
 ```
 
 ---
@@ -136,7 +136,7 @@ uv run python converter/validate_quiz_json.py data/json/35th/exam_35th.json
 ### 6. DB へインポート
 
 ```powershell
-uv run python converter/import_json.py
+.venv\Scripts\python.exe converter/import_json.py
 ```
 
 `data/json/checked/` 配下の全 JSON を再帰的に走査し、`is_reviewed: true` の問題のみを `data/quiz.db` に書き込みます（`is_reviewed: false` の問題はスキップされます）。ID（`{edition}_{question_number}`）が既存レコードと重複する場合は上書きされるため、同じファイルを再インポートしても安全です。

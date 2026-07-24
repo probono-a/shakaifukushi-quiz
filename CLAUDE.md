@@ -62,9 +62,9 @@ data/           SQLite DB・PDF・JSON（すべて git 管理外）
 - 第35回以前: PDF 画像 → `converter/pdf_to_scaffold_json.py --source-dir ... --edition N`
 
 3. **補完**: 変換スクリプトが出力するプロンプトを Claude に貼り付け、`explanation`・`keywords` を生成する
-4. **正規化**: `uv run python converter/normalize_text.py <dir>` (日本語句読点・空白の統一)
+4. **正規化**: `.venv\Scripts\python.exe converter/normalize_text.py <dir>` (日本語句読点・空白の統一)
 5. **レビュー**: 人間が `tools/quiz_editor.html` で内容を目視確認・編集し、`is_reviewed: true` にチェックを入れる
-6. **インポート**: `uv run python converter/import_json.py` — `is_reviewed: true` のレコードのみ `data/quiz.db` に書き込まれる
+6. **インポート**: `.venv\Scripts\python.exe converter/import_json.py` — `is_reviewed: true` のレコードのみ `data/quiz.db` に書き込まれる
 
 JSON ファイルは `data/json/{回}th/` 以下に配置され、レビュー済みのものは `data/json/checked/` に移動する。
 
