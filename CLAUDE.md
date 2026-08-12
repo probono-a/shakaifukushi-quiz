@@ -76,3 +76,4 @@ JSON ファイルは `data/json/{回}th/` 以下に配置される。AI精査後
 - **問題取得モード**: `questions.py` のクエリパラメータ `mode` で切り替える — `subject` (科目別) 、`random` (ランダム) 、`wrong_only` (間違いのみ) 、`edition` (回別) 、`weak` (正答率低順) 、`rare` (未出題・少ない順) 。
 - **外部サービスなし**: すべてのデータはローカル完結。外部依存は CDN の Chart.js と Google Fonts のみ (HTML `<head>` でロード) 。
 - **`.mcp.json`**: Claude Code の MCP SQLite 連携を設定し、開発時に `data/quiz.db` を直接参照できるようにしている。
+- **`CHANGELOG.md`**: ユーザーに影響する変更（機能追加・修正）をコミットしたら、都度先頭に追記する。内部的なリファクタリングやドキュメントのみの変更は記載しなくてよい。

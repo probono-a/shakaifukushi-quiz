@@ -39,8 +39,17 @@ pip install uv
 
 ### ステップ 2: アプリを入手する（初回のみ）
 
-1. このページ上部の緑色の **Code** ボタン → **Download ZIP** をクリックします。
-2. ダウンロードした ZIP ファイルを、デスクトップなど分かりやすい場所に展開（解凍）します。
+1. コマンドプロンプトまたは PowerShell で、アプリを置きたい場所（デスクトップなど）に移動し、以下を実行します。
+
+```
+git clone https://github.com/probono-a/shakaifukushi-quiz.git
+```
+
+2. `shakaifukushi-quiz` フォルダが作成されます。
+
+> Git がインストールされていない場合は、[Git 公式サイト](https://git-scm.com/downloads)からインストールしてください。
+
+> **Git を使いたくない場合**: このページ上部の緑色の **Code** ボタン → **Download ZIP** をクリックし、ダウンロードした ZIP ファイルをデスクトップなど分かりやすい場所に展開（解凍）しても構いません。ただし、この方法だとアップデート時に毎回 ZIP をダウンロードし直す必要があります。
 
 ### ステップ 3: セットアップして起動する（初回のみ）
 
@@ -58,6 +67,14 @@ http://localhost:8000/
 
 > 2 回目以降は `run.bat` をダブルクリックするだけで起動できます。（`setup.bat` は初回のみで OK です。）  
 > サーバーを止めたいときは `run.bat` の黒い画面を閉じるか、`stop.bat` を実行してください。
+
+> **アプリを最新版に更新したいとき**: `shakaifukushi-quiz` フォルダ内でコマンドプロンプトまたは PowerShell を開き、以下を実行してください。（`data/` フォルダの問題データや学習履歴は更新しても消えません。）
+>
+> ```
+> git pull
+> ```
+>
+> 何が変わったかは [CHANGELOG.md](CHANGELOG.md) で確認できます。
 
 ### ステップ 4: 問題を入力する
 
@@ -148,6 +165,7 @@ shakaifukushi-quiz/
 │   ├── quiz.html                # クイズ画面
 │   ├── editor.html              # 問題入力フォーム
 │   ├── css/style.css           # デザインシステム（ダーク / ライトモード対応）
+│   ├── sounds/                 # 効果音（OtoLogic 素材）
 │   └── js/
 │       ├── api.js              # 共通 API クライアント
 │       ├── theme.js            # ライト / ダークモード切り替え
@@ -156,14 +174,17 @@ shakaifukushi-quiz/
 │       ├── dashboard.js        # ダッシュボード描画
 │       ├── quiz.js             # クイズ全フロー
 │       └── editor.js           # 問題入力フォームのロジック
-├── converter/                   # データパイプライン用スクリプト（詳細は docs/data-pipeline.md）
+├── converter/                   # データ変換・インポート用スクリプト（詳細は docs/data-pipeline.md）
 ├── tools/
-│   └── quiz_editor.html        # JSON 確認・修正 GUI（データパイプライン用）
+│   ├── quiz_editor.html        # JSON 確認・修正 GUI（データパイプライン用）
+│   └── ...                     # PDF/HTML 取得・OCR などデータパイプライン補助スクリプト
 ├── data/                        # SQLite DB・PDF・JSON（すべて Git 管理外）
 ├── docs/
 │   ├── data-pipeline.md        # データパイプラインの詳細ガイド
 │   ├── screenshots/            # README 用スクリーンショット
 │   └── dev/                    # 開発・内部ドキュメント
+├── requirements.txt             # Python 依存パッケージ一覧
+├── CHANGELOG.md                 # 変更履歴
 ├── setup.bat / setup.sh         # 初回セットアップ
 ├── run.bat / run.sh             # アプリ起動
 └── stop.bat / stop.sh           # プロセス強制終了
