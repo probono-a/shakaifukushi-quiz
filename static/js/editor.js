@@ -81,17 +81,17 @@ async function loadSubjects() {
   }
 }
 
-/* カリキュラムの値に応じて科目プルダウンの選択肢を出し分ける。
-   selected を渡すとその値を選択状態にする（リストに無い場合も選択肢として追加し、
-   既存レコードの subject がそのまま書き戻されるようにする） */
+/* カリキュラムの値に応じて科目の候補一覧（datalist）を出し分ける。
+   selected を渡すとその値を入力欄にセットする（DB に無い科目名でも自由入力できるため、
+   一覧に含める必要はない） */
 function renderSubjectOptions(selected) {
-  const sel = document.getElementById('f-subject');
+  const input = document.getElementById('f-subject');
+  const datalist = document.getElementById('f-subject-datalist');
   const curriculum = document.getElementById('f-curriculum').value;
-  const list = [...subjectLists[curriculum] || []];
-  if (selected && !list.includes(selected)) list.unshift(selected);
-  sel.innerHTML = '';
-  list.forEach(s => sel.add(new Option(s, s)));
-  if (selected) sel.value = selected;
+  const list = subjectLists[curriculum] || [];
+  datalist.innerHTML = '';
+  list.forEach(s => datalist.appendChild(new Option(s, s)));
+  if (selected !== undefined) input.value = selected;
 }
 
 function renderOptions() {
@@ -225,7 +225,7 @@ function resetForm() {
   draft.reference_links = [];
   document.getElementById('f-edition').value = '';
   document.getElementById('f-curriculum').value = 'new';
-  document.getElementById('f-subject').selectedIndex = 0;
+  document.getElementById('f-subject').value = '';
   document.getElementById('f-question-number').value = '';
   document.getElementById('f-qtype').value = '通常';
   document.getElementById('f-case').value = '';
@@ -251,7 +251,10 @@ async function saveQuestion() {
   const options = draft.options.map(o => o.trim());
   while (options.length && !options[options.length - 1]) options.pop();
 
+  const subject = document.getElementById('f-subject').value.trim();
+
   if (!edition || !questionNumber) { showToast('回次と問題番号を入力してください', 'error'); return; }
+  if (!subject) { showToast('科目を入力してください', 'error'); return; }
   if (!questionText) { showToast('問題文を入力してください', 'error'); return; }
   if (options.length < 2) { showToast('選択肢を 2 つ以上入力してください', 'error'); return; }
   if (options.some(o => !o)) { showToast('選択肢は上から詰めて入力してください（途中に空欄があります）', 'error'); return; }
@@ -261,7 +264,7 @@ async function saveQuestion() {
   const body = {
     edition,
     curriculum: document.getElementById('f-curriculum').value,
-    subject: document.getElementById('f-subject').value,
+    subject,
     question_number: questionNumber,
     question_type: document.getElementById('f-qtype').value,
     case_text: document.getElementById('f-case').value.trim(),
