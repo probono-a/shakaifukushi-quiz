@@ -63,10 +63,11 @@ data/           SQLite DB・PDF・JSON（すべて git 管理外）
 
 3. **補完**: 変換スクリプトが出力するプロンプトを Claude に貼り付け、`explanation`・`keywords` を生成する
 4. **正規化**: `.venv\Scripts\python.exe converter/normalize_text.py <dir>` (日本語句読点・空白の統一)
-5. **レビュー**: 人間が `tools/quiz_editor.html` で内容を目視確認・編集し、`is_reviewed: true` にチェックを入れる
-6. **インポート**: `.venv\Scripts\python.exe converter/import_json.py` — `is_reviewed: true` のレコードのみ `data/quiz.db` に書き込まれる
+5. **AI精査**: `/check_explanations <対象ファイル/ディレクトリ>` — AI が解説文 (`explanation`) の制度名・条文番号・年次・統計数値などを Web 検索で裏取りし、確度の高い誤りを自動修正する。完了したファイルは `data/json/ai_reviewed/` に移動される
+6. **レビュー**: 人間が `tools/quiz_editor.html` で内容を目視確認・編集し、`is_reviewed: true` にチェックを入れた上で `data/json/checked/` に移動する
+7. **インポート**: `/import_to_db` (内部で `.venv\Scripts\python.exe converter/import_json.py` を実行) — `data/json/checked/` 以下の JSON を走査し、`is_reviewed: true` のレコードのみ `data/quiz.db` に書き込む。ファイル内の全レコードがインポートされた（未レビュー混在なし）場合、そのファイルは自動的に `data/json/imported_to_db/` へ移動される。未レビューのレコードが残っているファイルは `checked/` に留まる。
 
-JSON ファイルは `data/json/{回}th/` 以下に配置され、レビュー済みのものは `data/json/checked/` に移動する。
+JSON ファイルは `data/json/{回}th/` 以下に配置される。AI精査後は `data/json/ai_reviewed/`、人間のレビュー後は `data/json/checked/`、DBインポート後は `data/json/imported_to_db/` に移動する。
 
 ## 重要なパターン
 

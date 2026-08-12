@@ -10,7 +10,7 @@ data/pdf/*
 data/images/*
 !data/images/.gitkeep
 data/*.db
-data/json/**/*.json
+data/json/**/*
 !data/.gitkeep
 
 # Claude Code

@@ -1,4 +1,5 @@
 import json
+import shutil
 import sqlite3
 import os
 import glob
@@ -7,6 +8,7 @@ import glob
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(PROJECT_ROOT, "data", "quiz.db")
 JSON_DIR = os.path.join(PROJECT_ROOT, "data", "json", "checked")
+IMPORTED_DIR = os.path.join(PROJECT_ROOT, "data", "json", "imported_to_db")
 
 def init_db():
     """データベースとテーブルの初期化"""
@@ -120,6 +122,8 @@ def import_json_files(conn):
     
     total_imported = 0
     total_skipped = 0
+    moved_files = []
+    pending_files = []
 
     for file_path in json_files:
         print(f"Processing: {file_path}")
@@ -130,46 +134,66 @@ def import_json_files(conn):
                 print(f"Error decoding JSON {file_path}: {e}")
                 continue
 
-            for item in data:
-                # 人間による確認が完了しているものだけを対象とする
-                if not item.get("is_reviewed", False):
-                    total_skipped += 1
-                    continue
+        # ファイルハンドルを閉じた後に処理する (Windows では開いたままだとリネーム/移動できない)
+        file_skipped = 0
 
-                # カリキュラム判定
-                curriculum = get_curriculum(item.get("edition"))
+        for item in data:
+            # 人間による確認が完了しているものだけを対象とする
+            if not item.get("is_reviewed", False):
+                total_skipped += 1
+                file_skipped += 1
+                continue
 
-                # SQLite に挿入するための値の準備 (リストやフラグの変換)
-                cursor.execute("""
-                INSERT OR REPLACE INTO questions (
-                    id, edition, subject, question_number, question_type,
-                    case_text, question_text, is_multiple, options,
-                    correct_options, explanation, keywords, reference_links,
-                    image_paths, curriculum
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    item.get("id"),
-                    item.get("edition"),
-                    item.get("subject"),
-                    item.get("question_number"),
-                    item.get("question_type"),
-                    item.get("case_text"),
-                    item.get("question_text"),
-                    1 if item.get("is_multiple_answers") else 0,
-                    json.dumps(item.get("options", []), ensure_ascii=False),
-                    json.dumps(item.get("correct_options", []), ensure_ascii=False),
-                    item.get("explanation"),
-                    json.dumps(item.get("keywords", []), ensure_ascii=False),
-                    json.dumps(item.get("reference_links", []), ensure_ascii=False),
-                    json.dumps(item.get("image_paths", []), ensure_ascii=False),
-                    curriculum
-                ))
-                total_imported += 1
+            # カリキュラム判定
+            curriculum = get_curriculum(item.get("edition"))
+
+            # SQLite に挿入するための値の準備 (リストやフラグの変換)
+            cursor.execute("""
+            INSERT OR REPLACE INTO questions (
+                id, edition, subject, question_number, question_type,
+                case_text, question_text, is_multiple, options,
+                correct_options, explanation, keywords, reference_links,
+                image_paths, curriculum
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                item.get("id"),
+                item.get("edition"),
+                item.get("subject"),
+                item.get("question_number"),
+                item.get("question_type"),
+                item.get("case_text"),
+                item.get("question_text"),
+                1 if item.get("is_multiple_answers") else 0,
+                json.dumps(item.get("options", []), ensure_ascii=False),
+                json.dumps(item.get("correct_options", []), ensure_ascii=False),
+                item.get("explanation"),
+                json.dumps(item.get("keywords", []), ensure_ascii=False),
+                json.dumps(item.get("reference_links", []), ensure_ascii=False),
+                json.dumps(item.get("image_paths", []), ensure_ascii=False),
+                curriculum
+            ))
+            total_imported += 1
+
+        # ファイル内の全レコードがインポート済み (未レビュー混在なし) の場合のみ移動対象にする
+        if file_skipped == 0:
+            os.makedirs(IMPORTED_DIR, exist_ok=True)
+            dest_path = os.path.join(IMPORTED_DIR, os.path.basename(file_path))
+            shutil.move(file_path, dest_path)
+            moved_files.append(os.path.basename(file_path))
+        else:
+            pending_files.append(os.path.basename(file_path))
 
     conn.commit()
     print(f"\nImport Summary:")
     print(f"- Total imported: {total_imported}")
     print(f"- Total skipped (not reviewed): {total_skipped}")
+    print(f"- Files moved to imported_to_db/: {len(moved_files)}")
+    for name in moved_files:
+        print(f"    {name}")
+    if pending_files:
+        print(f"- Files kept in checked/ (contain unreviewed records): {len(pending_files)}")
+        for name in pending_files:
+            print(f"    {name}")
 
 if __name__ == "__main__":
     connection = init_db()
