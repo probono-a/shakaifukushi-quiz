@@ -3,6 +3,7 @@ import random
 from typing import List, Optional
 
 from fastapi import APIRouter, Query, Body, HTTPException
+from pydantic import BaseModel, StrictBool
 
 
 from db import get_db
@@ -263,6 +264,30 @@ def get_question(question_id: str):
     return _parse_question(row)
 
 
+class ReviewBody(BaseModel):
+    is_reviewed: StrictBool  # 1 や "true" は受け付けない
+
+
+def _check_is_reviewed(body: dict) -> None:
+    """本文に is_reviewed があるとき、真偽値でなければ 422 にする"""
+    if "is_reviewed" in body and not isinstance(body["is_reviewed"], bool):
+        raise HTTPException(status_code=422, detail="is_reviewed は true / false で指定してください")
+
+
+@router.patch("/questions/{question_id}/review")
+def set_review_status(question_id: str, body: ReviewBody):
+    """確認状態だけを変える (クイズ画面の「確認済みにする」ボタン用)"""
+    with get_db() as conn:
+        cur = conn.execute(
+            "UPDATE questions SET is_reviewed = ? WHERE id = ?",
+            (1 if body.is_reviewed else 0, question_id),
+        )
+        conn.commit()
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Question not found")
+    return {"ok": True, "is_reviewed": body.is_reviewed}
+
+
 @router.post("/questions")
 def create_question(body: dict = Body(...)):
     edition = body.get("edition")
@@ -270,6 +295,7 @@ def create_question(body: dict = Body(...)):
     if not edition or not question_number:
         raise HTTPException(status_code=422, detail="edition と question_number は必須です")
 
+    _check_is_reviewed(body)
     question_id = f"{edition}_{question_number}"
     correct_options = body.get("correct_options", [])
 
@@ -281,8 +307,9 @@ def create_question(body: dict = Body(...)):
         conn.execute("""
             INSERT INTO questions (
                 id, edition, subject, question_number, question_type, case_text, question_text,
-                is_multiple, options, correct_options, explanation, keywords, reference_links, curriculum
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                is_multiple, options, correct_options, explanation, keywords, reference_links, curriculum,
+                is_reviewed
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             question_id,
             edition,
@@ -298,6 +325,7 @@ def create_question(body: dict = Body(...)):
             json.dumps(body.get("keywords", []), ensure_ascii=False),
             json.dumps(body.get("reference_links", []), ensure_ascii=False),
             body.get("curriculum"),
+            1 if body.get("is_reviewed") else 0,  # 送られなければ列の既定値と同じ 0
         ))
         conn.commit()
     return {"ok": True, "id": question_id}
@@ -305,6 +333,7 @@ def create_question(body: dict = Body(...)):
 
 @router.put("/questions/{question_id}")
 def update_question(question_id: str, body: dict = Body(...)):
+    _check_is_reviewed(body)
     with get_db() as conn:
         row = conn.execute("SELECT id FROM questions WHERE id = ?", (question_id,)).fetchone()
         if not row:
@@ -330,5 +359,11 @@ def update_question(question_id: str, body: dict = Body(...)):
             body.get("curriculum"),
             question_id,
         ))
+        # is_reviewed は本文にあるときだけ更新する (古い画面からの保存で確認状態が消えないように)
+        if "is_reviewed" in body:
+            conn.execute(
+                "UPDATE questions SET is_reviewed = ? WHERE id = ?",
+                (1 if body["is_reviewed"] else 0, question_id),
+            )
         conn.commit()
     return {"ok": True}
