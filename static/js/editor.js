@@ -57,6 +57,8 @@ function enterEditMode(q) {
   document.getElementById('f-question-text').value = q.question_text || '';
   document.getElementById('f-explanation').value = q.explanation || '';
 
+  document.getElementById('f-reviewed').checked = !!q.is_reviewed;
+
   draft.options = [...(q.options || [])];
   while (draft.options.length < OPTION_COUNT) draft.options.push('');
   draft.correct_options = (q.correct_options || []).map(Number);
@@ -233,6 +235,7 @@ function resetForm() {
   document.getElementById('f-explanation').value = '';
   document.getElementById('f-expl-preview').innerHTML = '';
   document.getElementById('f-kw-input').value = '';
+  document.getElementById('f-reviewed').checked = true;  // 新規作成は確認済みが初期値
   document.querySelectorAll('.edit-md-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'edit'));
   document.getElementById('f-explanation').style.display = '';
   document.getElementById('f-expl-preview').style.display = 'none';
@@ -274,12 +277,14 @@ async function saveQuestion() {
     explanation,
     keywords: draft.keywords,
     reference_links: draft.reference_links.filter(l => l.trim()),
+    is_reviewed: document.getElementById('f-reviewed').checked,
   };
 
   try {
     if (editingId) {
       await API.put(`/api/questions/${encodeURIComponent(editingId)}`, body);
       showToast('更新しました', 'success');
+      notifyOpener(editingId, body.is_reviewed);
       // クイズ画面から別タブで開かれた場合はタブを閉じて元の画面に戻す。
       // ダッシュボードから同一タブで来た場合はダッシュボードへ戻る。
       setTimeout(() => {
@@ -293,6 +298,17 @@ async function saveQuestion() {
     }
   } catch (e) {
     showToast('保存に失敗しました: ' + e.message, 'error');
+  }
+}
+
+/* クイズ画面から開かれていれば、確認状態の変更を知らせる（同じオリジンなので呼べる） */
+function notifyOpener(id, isReviewed) {
+  try {
+    if (window.opener && typeof window.opener.updateQuestionReviewStatus === 'function') {
+      window.opener.updateQuestionReviewStatus(id, isReviewed);
+    }
+  } catch (e) {
+    console.error(e);
   }
 }
 
