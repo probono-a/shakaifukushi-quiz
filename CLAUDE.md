@@ -63,7 +63,9 @@ data/           SQLite DB・PDF・JSON（すべて git 管理外）
 
 3. **補完**: 変換スクリプトが出力するプロンプトを Claude に貼り付け、`explanation`・`keywords` を生成する
 4. **正規化**: `.venv\Scripts\python.exe converter/normalize_text.py <dir>` (日本語句読点・空白の統一)
-5. **AI精査**: `/check_explanations <対象ファイル/ディレクトリ>` — AI が解説文 (`explanation`) の制度名・条文番号・年次・統計数値などを Web 検索で裏取りし、確度の高い誤りを自動修正する。完了したファイルは `data/json/ai_reviewed/` に移動される
+5. **AI精査**: `/check_explanations <対象ファイル/ディレクトリ>` — AI が解説文 (`explanation`) の制度名・条文番号・年次・統計数値などを Web 検索で裏取りし、`question_text`/`options`/`case_text` の OCR起因の誤字・欠落・混入も原本 PDF (`data/pdf/{回}th/`) と照合して修正する。確度の高い誤りを自動修正し、完了したファイルは `data/json/ai_reviewed/` に移動される
+   - 原本 PDF (第35回以前はスキャン画像でテキスト層なし) との照合を高速化するため、`converter/ocr_pdf.py` で `tools/ndlocr-lite` (国立国会図書館製の軽量 OCR) を使い問題 PDF から `{PDF名}.ocr.txt` を事前生成できる。初回のみ `tools/ndlocr-lite` に専用 venv のセットアップが必要 (`cd tools/ndlocr-lite && python -m venv .venv && .venv/Scripts/python.exe -m pip install -r requirements.txt`、メインの `.venv` とは別)。OCR結果は目安であり (rn/m 等の字形誤認識がありうる)、最終確認は該当ページを PyMuPDF で画像化して視覚で行う
+   - 正答 PDF (`*_answer.pdf`/`*seitou*.pdf`) はスキャン画像と違って元からテキスト層を持つため OCR は行わない (画像化すると表レイアウトが崩れてかえって読みにくくなる)。`ocr_pdf.py` は正答 PDF を検出すると `parse_answers_pdf.py` で直接テキスト抽出し、`{PDF名}.md` に科目別の正答一覧を Markdown 表として出力する
 6. **レビュー**: 人間が `tools/quiz_editor.html` で内容を目視確認・編集し、`is_reviewed: true` にチェックを入れた上で `data/json/checked/` に移動する
 7. **インポート**: `/import_to_db` (内部で `.venv\Scripts\python.exe converter/import_json.py` を実行) — `data/json/checked/` 以下の JSON を走査し、`is_reviewed: true` のレコードのみ `data/quiz.db` に書き込む。ファイル内の全レコードがインポートされた（未レビュー混在なし）場合、そのファイルは自動的に `data/json/imported_to_db/` へ移動される。未レビューのレコードが残っているファイルは `checked/` に留まる。
 

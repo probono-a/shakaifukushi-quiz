@@ -65,7 +65,13 @@ def parse_answers_pdf(pdf_path: str):
         i += 1  # '正 答' をスキップ
         for qn in q_nums:
             if i < len(lines):
-                answers[qn] = [int(x.strip()) for x in lines[i].split(',')]
+                raw_answer = lines[i]
+                if re.fullmatch(r'[\d,]+', raw_answer):
+                    answers[qn] = [int(x.strip()) for x in raw_answer.split(',')]
+                else:
+                    # 「なし」等、出題ミスによる正解なし（全員正解等）の特例
+                    print(f'  WARNING: 問{qn} の正答が数値でない ({raw_answer!r}) → 正答なしとして扱う')
+                    answers[qn] = []
                 i += 1
 
         if subject:
