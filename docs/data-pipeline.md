@@ -21,9 +21,10 @@ tmp/{edition}_{file}/{科目}.json × N        （question_text・options 入り
 tmp/{edition}_{file}/{科目}.json × N        （explanation・keywords 追記済み）
         ↓ [merge_subject_json.py] → [normalize_text.py] → [validate_quiz_json.py]  ← 人間が実行
 data/json/{edition}th/{file}.json           （最終 JSON）
-        ↓ tools/quiz_editor.html でレビュー → data/json/checked/ へ移動  ← 人間が実行
-        ↓ [import_json.py]                  ← 人間が実行
-data/quiz.db
+        ↓ /check_explanations（AI 精査）→ data/json/ai_reviewed/ へ移動  ← Claude Code が担当
+        ↓ [import_json.py]                  ← 人間が実行（人の確認は待たない）
+data/quiz.db                                （is_reviewed = 0 の「未確認」で入る）
+        ↓ アプリで解きながら確認・修正し、確認済みにする  ← 人間が実行
 
 
 パス B: 第 35 回以前（PDF 画像形式）
@@ -37,9 +38,10 @@ tmp/{edition}_{file}/{科目}.json × N        （correct_options のみ入り�
 tmp/{edition}_{file}/{科目}.json × N        （explanation・keywords 追記済み）
         ↓ [merge_subject_json.py] → [normalize_text.py] → [validate_quiz_json.py]  ← 人間が実行
 data/json/{edition}th/{file}.json           （最終 JSON）
-        ↓ tools/quiz_editor.html でレビュー → data/json/checked/ へ移動  ← 人間が実行
-        ↓ [import_json.py]                  ← 人間が実行
-data/quiz.db
+        ↓ /check_explanations（AI 精査）→ data/json/ai_reviewed/ へ移動  ← Claude Code が担当
+        ↓ [import_json.py]                  ← 人間が実行（人の確認は待たない）
+data/quiz.db                                （is_reviewed = 0 の「未確認」で入る）
+        ↓ アプリで解きながら確認・修正し、確認済みにする  ← 人間が実行
 ```
 
 > OCR 済み PDF（`*_ocr.pdf`）は文字化けが多いため、原本 PDF を必ず使用してください。
@@ -120,18 +122,11 @@ Claude Code を起動し、[`docs/dev/prompts/pdf_to_json.md`](dev/prompts/pdf_t
 
 ---
 
-## 共通: レビューとインポート
+## 共通: インポートと確認
 
-### 5. `tools/quiz_editor.html` でレビュー
+### 5. AI 精査
 
-`tools/quiz_editor.html` を Chrome または Edge で直接開きます（File System Access API を使用するため、この 2 ブラウザのみ対応）。
-
-1. 「📂 JSON ファイルを開く」から `data/json/{edition}th/{file}.json` を選択します。
-2. 各問題の内容（問題文・選択肢・正解・解説・キーワード）を目視で確認し、必要であればその場で編集します（テキストはクリックして編集、配列要素の追加・削除も可能）。
-3. 確認済みの問題は「未チェック／チェック済」トグルで `is_reviewed: true` に切り替えます。
-4. `Ctrl+S`（または「💾 上書き保存」ボタン）で、開いている JSON ファイルに直接上書き保存します。
-
-レビューが完了したファイルは `data/json/checked/` 配下に移動してください（`import_json.py` はこのフォルダのみを走査します）。
+`/check_explanations <対象ファイル/ディレクトリ>` で、解説文の事実確認と、原本 PDF との照合による誤字・欠落の修正を行います。完了したファイルは `data/json/ai_reviewed/` に移動します。
 
 ### 6. DB へインポート
 
@@ -139,7 +134,31 @@ Claude Code を起動し、[`docs/dev/prompts/pdf_to_json.md`](dev/prompts/pdf_t
 .venv\Scripts\python.exe converter/import_json.py
 ```
 
-`data/json/checked/` 配下の全 JSON を再帰的に走査し、`is_reviewed: true` の問題のみを `data/quiz.db` に書き込みます（`is_reviewed: false` の問題はスキップされます）。ID（`{edition}_{question_number}`）が既存レコードと重複する場合は上書きされるため、同じファイルを再インポートしても安全です。
+`data/json/ai_reviewed/` 配下の全 JSON を再帰的に走査し、`data/quiz.db` に書き込みます。人の確認は待ちません。
+
+| DB の状態 | 処理 |
+| --- | --- |
+| 未登録 | INSERT（`is_reviewed` は JSON の値） |
+| 登録済み・未確認（`is_reviewed = 0`） | JSON の内容で上書き（AI 精査のやり直しを反映できる） |
+| 登録済み・確認済み（`is_reviewed = 1`） | 何もしない（人が確認した内容を守る） |
+
+- 1 ファイルずつ commit してから `data/json/imported_to_db/` に移します。確認済みのために飛ばした問題を含むファイルも移します
+- 移動先に同じ名前のファイルがあるときは、新しいほうに日時を付けて移します（前のファイルは消えません）
+- 同じ ID が複数のファイルにあるときは、何も書き込まずに止めます
+- 読めない JSON や、`id` のないレコードを含むファイルは、元の場所に残します
+- 実行のたびに、JSON と DB の差分を `data/json/imported_to_db/log/import_log_{日時}.md` に出します（スキップした問題・上書きした問題の差分、新規登録の ID、警告）
+
+### 7. アプリで確認
+
+インポートされた問題は、未確認として入ります。
+
+1. クイズ画面で問題を解くと、未確認の問題には「未確認」バッジが出ます
+2. 内容に問題がなければ、解答後の「✓ 確認済みにする」を押します
+3. 直す箇所があれば「✏️ 編集」でエディタを開いて直し、「確認済み」にチェックを入れて保存します
+
+確認済みにした問題は、再インポートしても上書きされません。確認状態の正はインポート後は DB の `questions.is_reviewed` で、JSON の `is_reviewed` はインポート時に一度だけ読みます。
+
+> `tools/quiz_editor.html` と `data/json/checked/` は、この流れでは使いません。
 
 ---
 
@@ -153,7 +172,7 @@ Claude Code を起動し、[`docs/dev/prompts/pdf_to_json.md`](dev/prompts/pdf_t
 | `merge_subject_json.py` | 科目別 JSON → 1 ファイルの最終 JSON（問題番号順にソート） | `--dir`, `--out` |
 | `normalize_text.py` | 日本語の句読点・全角半角・スペーシングを自動補正 | JSON ファイルまたはフォルダ（複数可） |
 | `validate_quiz_json.py` | スキーマ・ID 整合性・全角半角スペーシングを検証 | JSON ファイルパス（1 つ） |
-| `import_json.py` | `data/json/checked/` の `is_reviewed: true` な問題を DB にインポート | 引数なし（固定パスを走査） |
+| `import_json.py` | `data/json/ai_reviewed/` の問題を DB にインポート（未確認は上書き、確認済みはスキップ。差分をログに出力） | 引数なし（固定パスを走査） |
 
 ---
 
@@ -170,6 +189,8 @@ Claude Code を起動し、[`docs/dev/prompts/pdf_to_json.md`](dev/prompts/pdf_t
 
 - **`normalize_text.py` の実行順序**: 必ず `merge_subject_json.py` の後、`validate_quiz_json.py` の前に実行してください。全角半角の補正が入る前に検証すると誤検知が出ます。
 - **`validate_quiz_json.py` の警告**: `TODO` が残っている・正解番号が選択肢数の範囲外・全角半角スペース不足などを検出しますが、自動修正はしません。JSON を直接編集してから再実行してください。
-- **`is_reviewed` は常に `false` で生成される**: Claude Code は `is_reviewed: false` のまま JSON を出力する仕様です（`pdf_to_json.md` に明記）。人間が `tools/quiz_editor.html` で内容を確認してから `true` に切り替えてください。
-- **`import_json.py` は `data/json/checked/` しか見ない**: レビューが終わった JSON を移動し忘れると、いつまでも DB に反映されません。
+- **`is_reviewed` は常に `false` で生成される**: Claude Code は `is_reviewed: false` のまま JSON を出力する仕様です（`pdf_to_json.md` に明記）。インポートすると DB 上で未確認になり、人がアプリで確認済みにします。
+- **`import_json.py` は `data/json/ai_reviewed/` を見る**: AI 精査が終わっていない JSON（`dayNN/` など）は取り込まれません。
+- **確認済みの問題は JSON を直しても反映されない**: 確認済みにした問題は再インポートで上書きされません。直したいときはアプリのエディタで直します。JSON との差分はインポートのログで確認できます。
+- **DB を指定して実行する**: 環境変数 `QUIZ_DB_PATH` で、使う DB を変えられます（本番の DB を触らずに試したいとき）。実行時に使う DB のパスが表示されます。
 - **カリキュラム判定**: `import_json.py` は `edition >= 37` を新カリキュラム（`new`）、それ以外を旧カリキュラム（`old`）として自動判定します。

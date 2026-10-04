@@ -152,7 +152,7 @@ A. 現在、画面から問題を削除する機能はありません。誤っ�
 ```
 shakaifukushi-quiz/
 ├── main.py                     # FastAPI エントリーポイント
-├── db.py                       # SQLite 接続ヘルパー
+├── db.py                       # SQLite 接続・DB パスの決定・初期化と移行
 ├── routers/
 │   ├── questions.py            # /api/subjects, /api/editions, /api/questions
 │   ├── sessions.py             # POST /api/sessions, PATCH /api/sessions/{id}
@@ -175,8 +175,9 @@ shakaifukushi-quiz/
 │       ├── quiz.js             # クイズ全フロー
 │       └── editor.js           # 問題入力フォームのロジック
 ├── converter/                   # データ変換・インポート用スクリプト（詳細は docs/data-pipeline.md）
+├── tests/                       # 自動テスト（pytest）
 ├── tools/
-│   ├── quiz_editor.html        # JSON 確認・修正 GUI（データパイプライン用）
+│   ├── quiz_editor.html        # JSON 確認・修正 GUI（旧フロー用。今は使わない）
 │   └── ...                     # PDF/HTML 取得・OCR などデータパイプライン補助スクリプト
 ├── data/                        # SQLite DB・PDF・JSON（すべて Git 管理外）
 ├── docs/
@@ -184,6 +185,7 @@ shakaifukushi-quiz/
 │   ├── screenshots/            # README 用スクリーンショット
 │   └── dev/                    # 開発・内部ドキュメント
 ├── requirements.txt             # Python 依存パッケージ一覧
+├── requirements-dev.txt         # テスト用の追加パッケージ
 ├── CHANGELOG.md                 # 変更履歴
 ├── setup.bat / setup.sh         # 初回セットアップ
 ├── run.bat / run.sh             # アプリ起動
@@ -200,6 +202,7 @@ shakaifukushi-quiz/
 | GET | `/api/questions/{id}` | 問題 1 件取得 |
 | POST | `/api/questions` | 問題の新規登録 |
 | PUT | `/api/questions/{id}` | 問題の編集 |
+| PATCH | `/api/questions/{id}/review` | 問題の確認状態（確認済み・未確認）だけを変更 |
 | POST | `/api/sessions` | セッション作成 |
 | PATCH | `/api/sessions/{id}` | セッション終了 |
 | POST | `/api/history` | 解答記録 |
