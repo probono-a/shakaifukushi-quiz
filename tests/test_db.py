@@ -1,3 +1,4 @@
+import pytest
 import os
 import sqlite3
 
@@ -45,3 +46,59 @@ def test_open_initialized_db_creates_parent_dir(monkeypatch, tmp_path):
     monkeypatch.setenv("QUIZ_DB_PATH", str(tmp_path / "sub" / "dir" / "q.db"))
     open_initialized_db().close()
     assert (tmp_path / "sub" / "dir" / "q.db").exists()
+
+
+def _make_old_db(path, n=3):
+    """is_reviewed 列のない旧形式の questions を持つ DB を作る"""
+    conn = sqlite3.connect(path)
+    conn.execute("CREATE TABLE questions (id TEXT PRIMARY KEY, edition INTEGER, subject TEXT)")
+    conn.executemany("INSERT INTO questions VALUES (?, 35, 's')", [(f"35_{i}",) for i in range(1, n + 1)])
+    conn.commit()
+    return conn
+
+
+def test_migration_marks_existing_questions_reviewed(tmp_path):
+    conn = _make_old_db(tmp_path / "old.db")
+    init_db(conn)
+    assert conn.execute("SELECT COUNT(*) FROM questions WHERE is_reviewed = 1").fetchone()[0] == 3
+    assert conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0] == 3
+
+
+def test_migration_runs_only_once(tmp_path):
+    conn = _make_old_db(tmp_path / "old.db")
+    init_db(conn)
+    conn.execute("UPDATE questions SET is_reviewed = 0 WHERE id = '35_1'")
+    conn.commit()
+    init_db(conn)
+    assert conn.execute("SELECT is_reviewed FROM questions WHERE id = '35_1'").fetchone()[0] == 0
+
+
+class _FailOnUpdate:
+    """UPDATE questions を実行しようとしたら例外を起こす接続のラッパー"""
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+    def execute(self, sql, *args):
+        if sql.startswith("UPDATE questions SET is_reviewed"):
+            raise RuntimeError("途中で落ちた")
+        return self._conn.execute(sql, *args)
+
+
+def test_migration_failure_leaves_no_column(tmp_path):
+    conn = _make_old_db(tmp_path / "old.db")
+    with pytest.raises(RuntimeError):
+        init_db(_FailOnUpdate(conn))
+    assert "is_reviewed" not in {r[1] for r in conn.execute("PRAGMA table_info(questions)")}
+    init_db(conn)  # やり直すと、全件 1 になる
+    assert conn.execute("SELECT COUNT(*) FROM questions WHERE is_reviewed = 1").fetchone()[0] == 3
+
+
+def test_new_db_has_is_reviewed_default_0(tmp_path):
+    conn = sqlite3.connect(tmp_path / "new.db")
+    init_db(conn)
+    conn.execute("INSERT INTO questions (id) VALUES ('x')")
+    assert conn.execute("SELECT is_reviewed FROM questions").fetchone()[0] == 0

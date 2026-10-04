@@ -74,7 +74,8 @@ def init_db(conn: sqlite3.Connection) -> None:
         keywords         TEXT,
         reference_links  TEXT,
         image_paths      TEXT,
-        curriculum       TEXT
+        curriculum       TEXT,
+        is_reviewed      INTEGER NOT NULL DEFAULT 0
     )
     """)
 
@@ -130,6 +131,29 @@ def init_db(conn: sqlite3.Connection) -> None:
         )
 
     conn.commit()
+
+    _migrate_questions_is_reviewed(conn)
+
+
+def _migrate_questions_is_reviewed(conn: sqlite3.Connection) -> None:
+    """questions に is_reviewed 列がなければ足し、既存の問題をすべて確認済み (1) にする。
+
+    これまで DB に入っていた問題は、すべて人が確認したうえで入れたもの。
+    列の追加と UPDATE は 1 つのトランザクションで行う。分けると、UPDATE の前に落ちたとき
+    列だけが残り、次の起動では「列がある」と判断されて UPDATE が二度と走らない。
+    """
+    columns = {r[1] for r in conn.execute("PRAGMA table_info(questions)")}
+    if "is_reviewed" in columns:
+        return
+    # Python の sqlite3 は DDL を自動では BEGIN で囲まないので、明示する
+    conn.execute("BEGIN")
+    try:
+        conn.execute("ALTER TABLE questions ADD COLUMN is_reviewed INTEGER NOT NULL DEFAULT 0")
+        conn.execute("UPDATE questions SET is_reviewed = 1")
+        conn.execute("COMMIT")
+    except BaseException:
+        conn.execute("ROLLBACK")
+        raise
 
 
 def open_initialized_db() -> sqlite3.Connection:
