@@ -146,6 +146,45 @@
             font-weight: bold;
         }
 
+        .check-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .check-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+            font-size: 0.9em;
+            color: var(--text-muted);
+            cursor: pointer;
+            user-select: none;
+            background: #e2e8f0;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid transparent;
+        }
+
+        .check-toggle.is-flagged {
+            background: #fef3c7;
+            color: #b45309;
+            border: 1px solid #f59e0b;
+            font-weight: bold;
+        }
+
+        .check-note-input {
+            flex: 1;
+            font: inherit;
+            font-size: 0.9em;
+            padding: 4px 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            resize: vertical;
+        }
+
         .curriculum-row {
             display: flex;
             align-items: center;
@@ -1041,6 +1080,13 @@
                     ${keywordLinksHtml}
                     ${linksHtml}
                 </div>
+                <div class="check-row">
+                    <label class="check-toggle ${q.needs_check ? 'is-flagged' : ''}">
+                        <input type="checkbox" class="needs-check-checkbox" data-qidx="${qIndex}" ${q.needs_check ? 'checked' : ''} style="margin: 0;">
+                        ⚠️ 要確認
+                    </label>
+                    <textarea class="check-note-input" data-qidx="${qIndex}" rows="1" placeholder="要確認の理由 (任意。印を付けると、アプリで解いたあとに表示されます)">${escapeHtml(q.check_note || '')}</textarea>
+                </div>
                 <div style="display:flex; justify-content:flex-end; margin-top:16px;">
                     <label class="reviewed-toggle ${q.is_reviewed ? 'is-reviewed' : ''}">
                         <input type="checkbox" class="is-reviewed-checkbox" data-qidx="${qIndex}" ${q.is_reviewed ? 'checked' : ''} style="margin: 0;">
@@ -1177,6 +1223,30 @@
                         textSpan.textContent = '未チェック';
                     }
                     updateProgress();
+                });
+            });
+
+            // 要確認の印と理由。触ったときだけ JSON に項目ができる
+            // (項目のない JSON をインポートしても、アプリで付けた印は消えない)。
+            // 印なし・理由が空に戻したら項目ごと消す。false や空文字を残すと、
+            // インポートでアプリ側の印と理由を消してしまうため
+            function setCheckField(qIdx, field, value, isEmpty) {
+                if (isEmpty) delete currentData[qIdx][field];
+                else currentData[qIdx][field] = value;
+            }
+
+            document.querySelectorAll('.needs-check-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    setCheckField(qIdx, 'needs_check', true, !e.target.checked);
+                    e.target.parentElement.classList.toggle('is-flagged', e.target.checked);
+                });
+            });
+
+            document.querySelectorAll('.check-note-input').forEach(el => {
+                el.addEventListener('input', (e) => {
+                    const qIdx = e.target.getAttribute('data-qidx');
+                    setCheckField(qIdx, 'check_note', e.target.value, !e.target.value.trim());
                 });
             });
 
