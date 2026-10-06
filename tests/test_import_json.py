@@ -275,3 +275,94 @@ def test_log_written_even_when_unexpected_error(env, monkeypatch):
     with pytest.raises(KeyboardInterrupt):
         run(env)
     assert len(os.listdir(env["log"])) == 1
+
+
+def test_reimport_keeps_needs_check(env):
+    """未確認の問題を上書きしても、要確認の印と理由は消えない"""
+    write(env, "a.json", [make_item("35_1")])
+    run(env)
+    env["conn"].execute("UPDATE questions SET needs_check = 1, check_note = '理由' WHERE id = '35_1'")
+    env["conn"].commit()
+    write(env, "b.json", [make_item("35_1", explanation="新しい")])
+    run(env)
+    r = row(env, "35_1")
+    assert r["explanation"] == "新しい"
+    assert (r["needs_check"], r["check_note"]) == (1, "理由")
+
+
+def test_insert_reads_needs_check_from_json(env):
+    write(env, "a.json", [
+        make_item("35_1", needs_check=True, check_note="  理由  "),
+        make_item("35_2", needs_check=True, check_note=""),
+        make_item("35_3"),  # 項目なし
+    ])
+    run(env)
+    assert (row(env, "35_1")["needs_check"], row(env, "35_1")["check_note"]) == (1, "理由")
+    assert (row(env, "35_2")["needs_check"], row(env, "35_2")["check_note"]) == (1, None)
+    assert (row(env, "35_3")["needs_check"], row(env, "35_3")["check_note"]) == (0, None)
+
+
+def _flag(env, qid, note="アプリで付けた"):
+    env["conn"].execute("UPDATE questions SET needs_check = 1, check_note = ? WHERE id = ?", (note, qid))
+    env["conn"].commit()
+
+
+def test_overwrite_uses_json_check_fields_when_present(env):
+    write(env, "a.json", [make_item("35_1"), make_item("35_2")])
+    run(env)
+    _flag(env, "35_1")
+    _flag(env, "35_2")
+    write(env, "b.json", [
+        make_item("35_1", needs_check=False),  # 印だけ外す (理由の項目なし)
+        make_item("35_2", check_note="JSON の理由"),  # 理由だけ変える (印の項目なし)
+    ])
+    run(env)
+    assert (row(env, "35_1")["needs_check"], row(env, "35_1")["check_note"]) == (0, "アプリで付けた")
+    assert (row(env, "35_2")["needs_check"], row(env, "35_2")["check_note"]) == (1, "JSON の理由")
+
+
+def test_reviewed_keeps_check_fields(env):
+    write(env, "a.json", [make_item("35_1")])
+    run(env)
+    set_reviewed(env, "35_1", 1)
+    _flag(env, "35_1")
+    write(env, "b.json", [make_item("35_1", needs_check=False, check_note=None)])
+    run(env)
+    assert (row(env, "35_1")["needs_check"], row(env, "35_1")["check_note"]) == (1, "アプリで付けた")
+
+
+def test_log_shows_check_diff_only_when_json_has_fields(env):
+    write(env, "a.json", [make_item("35_1"), make_item("35_2")])
+    run(env)
+    _flag(env, "35_1")
+    _flag(env, "35_2")
+    write(env, "b.json", [make_item("35_1", needs_check=False), make_item("35_2")])
+    text = log_text(run(env))
+    assert "`needs_check`: あり → なし" in text
+    assert "check_note" not in text  # 35_1 は理由の項目なし、35_2 は両方なし
+    assert "35_2" in text  # 差分なしの一覧には出る
+
+
+def test_insert_note_only(env):
+    write(env, "a.json", [make_item("35_1", check_note="理由だけ")])
+    run(env)
+    assert (row(env, "35_1")["needs_check"], row(env, "35_1")["check_note"]) == (0, "理由だけ")
+
+
+def test_whitespace_only_note_difference_is_not_diff(env):
+    write(env, "a.json", [make_item("35_1")])
+    run(env)
+    _flag(env, "35_1", "理由")
+    write(env, "b.json", [make_item("35_1", check_note=" 理由 ")])
+    assert "check_note" not in log_text(run(env))
+
+
+@pytest.mark.parametrize("bad", [{"needs_check": "false"}, {"needs_check": None}, {"needs_check": 1}, {"check_note": 123}])
+def test_bad_check_fields_are_ignored_with_warning(env, bad):
+    write(env, "a.json", [make_item("35_1")])
+    run(env)
+    _flag(env, "35_1")
+    write(env, "b.json", [make_item("35_1", **bad)])
+    result = run(env)
+    assert (row(env, "35_1")["needs_check"], row(env, "35_1")["check_note"]) == (1, "アプリで付けた")
+    assert any("型が違う" in w for w in result["warnings"])

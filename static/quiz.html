@@ -96,6 +96,13 @@
     /* 編集ボタン行 */
     .fb-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .75rem; }
 
+    /* 要確認の理由 (改行をそのまま出す) */
+    .fb-check-note {
+      background: var(--warning-dim); border: 1px solid rgba(251,191,36,.35); border-radius: var(--radius);
+      color: var(--warning); padding: .625rem .875rem; margin-bottom: .75rem;
+      font-size: .875rem; white-space: pre-wrap;
+    }
+
     /* スコアカウントアップ完了時のポップ */
     @keyframes score-pop {
       0%   { transform: scale(1); }
@@ -161,6 +168,16 @@
               <div class="mode-card-title">未出題・少ない順</div>
               <div class="mode-card-desc">解いた回数が少ない問題を優先して出題</div>
             </div>
+            <div class="mode-card" data-mode="needs_check">
+              <div class="mode-card-icon">⚠️</div>
+              <div class="mode-card-title">要確認の問題</div>
+              <div class="mode-card-desc">印を付けた問題を確かめる</div>
+            </div>
+            <div class="mode-card" data-mode="unreviewed">
+              <div class="mode-card-icon">🔍</div>
+              <div class="mode-card-title">未確認の問題</div>
+              <div class="mode-card-desc">まだ人が確認していない問題を確かめる</div>
+            </div>
           </div>
         </div>
 
@@ -198,6 +215,14 @@
         <!-- 間違え問題のみ の説明 -->
         <div id="info-wrong" class="hidden" style="background:var(--warning-dim);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius);padding:.875rem 1rem;font-size:.875rem;color:var(--warning);margin-bottom:1rem">
           過去の解答履歴から、1 度でも不正解だった問題を出題します。
+        </div>
+
+        <!-- 要確認・未確認 の説明 -->
+        <div id="info-needs-check" class="hidden" style="background:var(--warning-dim);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius);padding:.875rem 1rem;font-size:.875rem;color:var(--warning);margin-bottom:1rem">
+          「要確認」の印を付けた問題を、回・問題番号の順に出題します。印を外すと、次からは出題されません。
+        </div>
+        <div id="info-unreviewed" class="hidden" style="background:var(--warning-dim);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius);padding:.875rem 1rem;font-size:.875rem;color:var(--warning);margin-bottom:1rem">
+          まだ人が確認していない問題を、回・問題番号の順に出題します。確認済みにすると、次からは出題されません。
         </div>
 
         <!-- 未出題・少ない順 の説明 -->
@@ -263,6 +288,7 @@
       <div class="feedback-box hidden" id="feedback">
         <div class="feedback-title" id="fb-title"></div>
         <div style="font-size:.85rem;color:var(--text-2);margin-bottom:.5rem" id="fb-answer"></div>
+        <div class="fb-check-note hidden" id="fb-check-note"></div>
         <div class="kw-list" id="fb-keywords"></div>
         <div class="fb-explanation" id="fb-explanation" style="display:none"></div>
         <div id="fb-links" style="margin-top:.5rem"></div>

@@ -58,6 +58,8 @@ function enterEditMode(q) {
   document.getElementById('f-explanation').value = q.explanation || '';
 
   document.getElementById('f-reviewed').checked = !!q.is_reviewed;
+  document.getElementById('f-needs-check').checked = !!q.needs_check;
+  document.getElementById('f-check-note').value = q.check_note || '';
 
   draft.options = [...(q.options || [])];
   while (draft.options.length < OPTION_COUNT) draft.options.push('');
@@ -236,6 +238,8 @@ function resetForm() {
   document.getElementById('f-expl-preview').innerHTML = '';
   document.getElementById('f-kw-input').value = '';
   document.getElementById('f-reviewed').checked = true;  // 新規作成は確認済みが初期値
+  document.getElementById('f-needs-check').checked = false;
+  document.getElementById('f-check-note').value = '';
   document.querySelectorAll('.edit-md-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'edit'));
   document.getElementById('f-explanation').style.display = '';
   document.getElementById('f-expl-preview').style.display = 'none';
@@ -278,13 +282,16 @@ async function saveQuestion() {
     keywords: draft.keywords,
     reference_links: draft.reference_links.filter(l => l.trim()),
     is_reviewed: document.getElementById('f-reviewed').checked,
+    needs_check: document.getElementById('f-needs-check').checked,
+    // API と同じく、前後の空白を取り、空なら null にする
+    check_note: document.getElementById('f-check-note').value.trim() || null,
   };
 
   try {
     if (editingId) {
       await API.put(`/api/questions/${encodeURIComponent(editingId)}`, body);
       showToast('更新しました', 'success');
-      notifyOpener(editingId, body.is_reviewed);
+      notifyOpener(editingId, body);
       // クイズ画面から別タブで開かれた場合はタブを閉じて元の画面に戻す。
       // ダッシュボードから同一タブで来た場合はダッシュボードへ戻る。
       setTimeout(() => {
@@ -301,11 +308,12 @@ async function saveQuestion() {
   }
 }
 
-/* クイズ画面から開かれていれば、確認状態の変更を知らせる（同じオリジンなので呼べる） */
-function notifyOpener(id, isReviewed) {
+/* クイズ画面から開かれていれば、確認状態と要確認の変更を知らせる（同じオリジンなので呼べる） */
+function notifyOpener(id, body) {
   try {
     if (window.opener && typeof window.opener.updateQuestionReviewStatus === 'function') {
-      window.opener.updateQuestionReviewStatus(id, isReviewed);
+      window.opener.updateQuestionReviewStatus(id, body.is_reviewed,
+        { needs_check: body.needs_check, check_note: body.check_note });
     }
   } catch (e) {
     console.error(e);

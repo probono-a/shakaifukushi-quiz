@@ -63,4 +63,6 @@ const MODE_LABEL = {
   wrong_only: '間違えた問題',
   random:     'ランダム',
   edition:    '模擬受験',
+  needs_check: '要確認',
+  unreviewed: '未確認',
 };

@@ -158,6 +158,7 @@ print('done: 01_医学概論')
 | `case_text` | string | 事例文 (ない場合は `""`) |
 | `question_text` | string | 問題文 (「問題 N」の接頭辞は削除) |
 | `is_multiple_answers` | boolean | 正解が 2 つ以上 → `true` |
+| `needs_check`・`check_note` | — | **出力しない**。人が `quiz_editor.html` で付ける「要確認」の印と理由。項目があると、インポートでアプリ側の印と理由を上書きする |
 | `options` | array\[str\] | 選択肢 (先頭の番号は削除) |
 | `correct_options` | array\[int\] | 正解番号 (1〜5) |
 | `explanation` | string | 解説 Markdown (下記フォーマット参照) |

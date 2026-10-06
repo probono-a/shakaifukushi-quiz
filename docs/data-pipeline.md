@@ -147,6 +147,7 @@ Claude Code を起動し、[`docs/dev/prompts/pdf_to_json.md`](dev/prompts/pdf_t
 - 同じ ID が複数のファイルにあるときは、何も書き込まずに止めます
 - 読めない JSON や、`id` のないレコードを含むファイルは、元の場所に残します
 - 実行のたびに、JSON と DB の差分を `data/json/imported_to_db/log/import_log_{日時}.md` に出します（スキップした問題・上書きした問題の差分、新規登録の ID、警告）
+- JSON に `needs_check`（要確認の印）と `check_note`（理由）があれば、それも入れます。項目のない JSON では、DB の印と理由を変えません（アプリで付けた印が、入れ直しで消えないように）。確認済みの問題は、印と理由も読みません（DB に入れたあとは、アプリで付け外しします）
 
 ### 7. アプリで確認
 
@@ -158,7 +159,7 @@ Claude Code を起動し、[`docs/dev/prompts/pdf_to_json.md`](dev/prompts/pdf_t
 
 確認済みにした問題は、再インポートしても上書きされません。確認状態の正はインポート後は DB の `questions.is_reviewed` で、JSON の `is_reviewed` はインポート時に一度だけ読みます。
 
-> `tools/quiz_editor.html` と `data/json/checked/` は、この流れでは使いません。
+> `tools/quiz_editor.html` と `data/json/checked/` は、この流れでは使いません。ただし、`quiz_editor.html` で JSON を直す使い方もできます。「⚠️ 要確認」の印と理由を付けた JSON をインポートすると、アプリに「要確認」として出ます。
 
 ---
 

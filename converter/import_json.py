@@ -3,6 +3,8 @@
 - DB に未登録の問題は INSERT する
 - DB で未確認 (is_reviewed = 0) の問題は、JSON の内容で UPDATE する
 - DB で確認済み (is_reviewed = 1) の問題は、何もしない (人が確認した内容を守る)
+- 要確認の印 (needs_check) と理由 (check_note) は、JSON に項目があるときだけ読む
+  (項目のない JSON を入れ直しても、アプリで付けた印が消えないように)
 - 1 ファイルずつ commit してから imported_to_db/ に移す
 - 実行のたびに、JSON と DB の差分をログファイルに出す
 """
@@ -33,6 +35,8 @@ COMPARE_FIELDS = (
 )
 # ログに unified diff で出す長い項目
 LONG_FIELDS = ("case_text", "question_text", "options", "explanation")
+# JSON に項目があるときだけ読み、比べる項目 (要確認の印と理由)
+CHECK_FIELDS = ("needs_check", "check_note")
 
 
 def get_curriculum(edition):
@@ -84,11 +88,54 @@ def _dumps(value):
     return json.dumps(value, ensure_ascii=False)
 
 
+def normalize_check_note(value):
+    """理由の前後の空白を取り、空なら None にする (API と同じ扱い)"""
+    if value is None:
+        return None
+    return str(value).strip() or None
+
+
+def _check_values(record):
+    """要確認の印と理由を、DB に入れる形 (0 / 1、文字列か None) にして返す"""
+    return {
+        "needs_check": 1 if record.get("needs_check") else 0,
+        "check_note": normalize_check_note(record.get("check_note")),
+    }
+
+
+def drop_bad_check_fields(items, name, warnings):
+    """型の違う needs_check・check_note を読まないように、項目を除いたコピーを返す。
+
+    API と同じく、needs_check は true / false、check_note は文字列か null だけを受け付ける。
+    (例えば "false" という文字列を印ありとして入れないように)
+    """
+    out = []
+    for item in items:
+        bad = []
+        if "needs_check" in item and not isinstance(item["needs_check"], bool):
+            bad.append("needs_check")
+        if "check_note" in item and not (item["check_note"] is None or isinstance(item["check_note"], str)):
+            bad.append("check_note")
+        if bad:
+            item = {k: v for k, v in item.items() if k not in bad}
+            warnings.append(f"{name}: {item['id']} の {'・'.join(bad)} は型が違うので読まなかった")
+        out.append(item)
+    return out
+
+
 def compute_diff(db_row, item):
-    """DB の行と JSON のレコードの差分を、項目名 → (DB 側, JSON 側) で返す。差分がなければ空"""
+    """DB の行と JSON のレコードの差分を、項目名 → (DB 側, JSON 側) で返す。差分がなければ空
+
+    要確認の印と理由は、JSON に項目があるときだけ比べる。
+    """
     a = _normalize(_db_record(db_row))
     b = _normalize(item)
-    return {f: (a[f], b[f]) for f in COMPARE_FIELDS if _dumps(a[f]) != _dumps(b[f])}
+    diff = {f: (a[f], b[f]) for f in COMPARE_FIELDS if _dumps(a[f]) != _dumps(b[f])}
+    db_check, json_check = _check_values(dict(db_row)), _check_values(item)
+    for f in CHECK_FIELDS:
+        if f in item and db_check[f] != json_check[f]:
+            diff[f] = (db_check[f], json_check[f])
+    return diff
 
 
 def _lines(field, value):
@@ -100,6 +147,8 @@ def _lines(field, value):
 def _short(field, value):
     if field in LIST_FIELDS:
         return _dumps(value)
+    if field == "needs_check":
+        return "あり" if value else "なし"
     return f"`{value}`" if value else "(空)"
 
 
@@ -171,9 +220,9 @@ def _import_file(conn, items):
                     id, edition, subject, question_number, question_type,
                     case_text, question_text, is_multiple, options,
                     correct_options, explanation, keywords, reference_links,
-                    image_paths, curriculum, is_reviewed
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (qid,) + values)
+                    image_paths, curriculum, is_reviewed, needs_check, check_note
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (qid,) + values + tuple(_check_values(item).values()))
             res["inserted"].append(qid)
             continue
         diff = compute_diff(dict(row), item)
@@ -189,6 +238,11 @@ def _import_file(conn, items):
                 image_paths = ?, curriculum = ?, is_reviewed = ?
             WHERE id = ?
         """, values + (qid,))
+        # 要確認の印と理由は、JSON に項目があるときだけ上書きする
+        check = _check_values(item)
+        for f in CHECK_FIELDS:
+            if f in item:
+                conn.execute(f"UPDATE questions SET {f} = ? WHERE id = ?", (check[f], qid))
         res["overwritten"].append((qid, diff))
     return res
 
@@ -257,6 +311,7 @@ def _run_import(conn, json_dir, imported_dir, result, files):
         print(f"Processing: {path}")
         valid = [i for i in data if i.get("id")]
         missing = len(data) - len(valid)
+        valid = drop_bad_check_fields(valid, name, result["warnings"])
         try:
             res = _import_file(conn, valid)
             conn.commit()

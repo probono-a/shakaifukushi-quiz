@@ -106,10 +106,20 @@
       <div id="f-links"></div>
       <button type="button" class="edit-add-btn" id="f-link-add">＋ URL を追加</button>
 
+      <div class="edit-field-label">要確認の理由</div>
+      <div style="font-size:.78rem;color:var(--text-2);margin:-.15rem 0 .4rem">
+        確かめたい疑問を書いておくと、クイズ画面で解いたあとに表示されます。
+      </div>
+      <textarea class="edit-input" id="f-check-note" rows="2"></textarea>
+
       <div style="margin-top:1.75rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
         <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.9rem">
           <input type="checkbox" id="f-reviewed" checked>
           確認済み（内容を人が確認した）
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.9rem">
+          <input type="checkbox" id="f-needs-check">
+          ⚠️ 要確認（確かめたい疑問がある）
         </label>
         <button class="btn btn-primary btn-lg" id="btn-save">保存する</button>
       </div>
