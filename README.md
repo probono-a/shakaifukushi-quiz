@@ -188,7 +188,7 @@ shakaifukushi-quiz/
 ├── converter/                   # データ変換・インポート用スクリプト（詳細は docs/data-pipeline.md）
 ├── tests/                       # 自動テスト（pytest）
 ├── tools/
-│   ├── quiz_editor.html        # JSON 確認・修正 GUI（旧フロー用。今は使わない）
+│   ├── quiz_editor.html        # JSON 確認・修正 GUI（旧フロー用。「要確認」の印も付けられる）
 │   └── ...                     # PDF/HTML 取得・OCR などデータパイプライン補助スクリプト
 ├── data/                        # SQLite DB・PDF・JSON（すべて Git 管理外）
 ├── docs/

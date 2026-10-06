@@ -83,6 +83,7 @@ data/           SQLite DB・PDF・JSON（すべて git 管理外）
    - DB に未登録の問題は INSERT する (`is_reviewed` は JSON の値)
    - DB で未確認 (`is_reviewed = 0`) の問題は、JSON の内容で上書きする (AI 精査のやり直しを反映できる)
    - DB で確認済み (`is_reviewed = 1`) の問題は何もしない (人が確認した内容を守る)
+   - JSON の `needs_check`・`check_note` (要確認の印と理由) は、項目があるときだけ読む。項目のない JSON では DB の印と理由を変えない
    - 1 ファイルずつ commit してから `data/json/imported_to_db/` に移す (同名のファイルがあれば日時付きの名前で移す)
    - 実行のたびに、JSON と DB の差分を `data/json/imported_to_db/log/import_log_*.md` に出す
 7. **確認**: 人がアプリで問題を解きながら確認する。未確認の問題には「未確認」バッジが出る。解答後の「確認済みにする」ボタン、またはエディタ (`/editor.html`) の「確認済み」チェックで確認済みにする。修正もエディタで行い、内容は DB にだけ残る
