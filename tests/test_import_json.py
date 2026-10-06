@@ -275,3 +275,16 @@ def test_log_written_even_when_unexpected_error(env, monkeypatch):
     with pytest.raises(KeyboardInterrupt):
         run(env)
     assert len(os.listdir(env["log"])) == 1
+
+
+def test_reimport_keeps_needs_check(env):
+    """未確認の問題を上書きしても、要確認の印と理由は消えない"""
+    write(env, "a.json", [make_item("35_1")])
+    run(env)
+    env["conn"].execute("UPDATE questions SET needs_check = 1, check_note = '理由' WHERE id = '35_1'")
+    env["conn"].commit()
+    write(env, "b.json", [make_item("35_1", explanation="新しい")])
+    run(env)
+    r = row(env, "35_1")
+    assert r["explanation"] == "新しい"
+    assert (r["needs_check"], r["check_note"]) == (1, "理由")

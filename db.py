@@ -75,7 +75,9 @@ def init_db(conn: sqlite3.Connection) -> None:
         reference_links  TEXT,
         image_paths      TEXT,
         curriculum       TEXT,
-        is_reviewed      INTEGER NOT NULL DEFAULT 0
+        is_reviewed      INTEGER NOT NULL DEFAULT 0,
+        needs_check      INTEGER NOT NULL DEFAULT 0,
+        check_note       TEXT
     )
     """)
 
@@ -133,6 +135,7 @@ def init_db(conn: sqlite3.Connection) -> None:
     conn.commit()
 
     _migrate_questions_is_reviewed(conn)
+    _migrate_questions_needs_check(conn)
 
 
 def _migrate_questions_is_reviewed(conn: sqlite3.Connection) -> None:
@@ -154,6 +157,20 @@ def _migrate_questions_is_reviewed(conn: sqlite3.Connection) -> None:
     except BaseException:
         conn.execute("ROLLBACK")
         raise
+
+
+def _migrate_questions_needs_check(conn: sqlite3.Connection) -> None:
+    """questions に要確認の印 (needs_check) と理由 (check_note) の列がなければ足す。
+
+    既存の問題は印なし・理由なしでよいので、値は書き換えない。
+    ALTER はその場で確定するので、列ごとに確かめれば、途中で落ちても次の起動で残りが足される。
+    """
+    columns = {r[1] for r in conn.execute("PRAGMA table_info(questions)")}
+    if "needs_check" not in columns:
+        conn.execute("ALTER TABLE questions ADD COLUMN needs_check INTEGER NOT NULL DEFAULT 0")
+    if "check_note" not in columns:
+        conn.execute("ALTER TABLE questions ADD COLUMN check_note TEXT")
+    conn.commit()
 
 
 def open_initialized_db() -> sqlite3.Connection:

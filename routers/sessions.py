@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api", tags=["sessions"])
 
 
 class SessionCreate(BaseModel):
-    mode: str  # "subject" / "wrong_only" / "random" / "edition"
+    mode: str  # "subject" / "wrong_only" / "random" / "edition" / "rare" / "needs_check" / "unreviewed"
     config: dict = {}
 
 

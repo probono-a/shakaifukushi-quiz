@@ -102,3 +102,32 @@ def test_new_db_has_is_reviewed_default_0(tmp_path):
     init_db(conn)
     conn.execute("INSERT INTO questions (id) VALUES ('x')")
     assert conn.execute("SELECT is_reviewed FROM questions").fetchone()[0] == 0
+
+
+def _columns(conn):
+    return {r[1] for r in conn.execute("PRAGMA table_info(questions)")}
+
+
+def test_migration_adds_needs_check_columns(tmp_path):
+    """is_reviewed も無い DB では、2 つの移行が重なる。既存の問題は確認済み・印なしになる"""
+    conn = _make_old_db(tmp_path / "old.db")
+    init_db(conn)
+    assert {"needs_check", "check_note"} <= _columns(conn)
+    rows = conn.execute("SELECT is_reviewed, needs_check, check_note FROM questions").fetchall()
+    assert rows == [(1, 0, None)] * 3
+
+
+def test_needs_check_migration_keeps_values(tmp_path):
+    conn = _make_old_db(tmp_path / "old.db")
+    init_db(conn)
+    conn.execute("UPDATE questions SET needs_check = 1, check_note = '理由' WHERE id = '35_1'")
+    conn.commit()
+    init_db(conn)
+    assert conn.execute("SELECT needs_check, check_note FROM questions WHERE id = '35_1'").fetchone() == (1, "理由")
+
+
+def test_new_db_has_needs_check_columns(tmp_path):
+    conn = sqlite3.connect(tmp_path / "new.db")
+    init_db(conn)
+    conn.execute("INSERT INTO questions (id) VALUES ('x')")
+    assert conn.execute("SELECT needs_check, check_note FROM questions").fetchone() == (0, None)

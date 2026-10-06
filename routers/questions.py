@@ -3,7 +3,7 @@ import random
 from typing import List, Optional
 
 from fastapi import APIRouter, Query, Body, HTTPException
-from pydantic import BaseModel, StrictBool
+from pydantic import BaseModel, StrictBool, StrictStr
 
 
 from db import get_db
@@ -76,6 +76,8 @@ def get_questions(
         random     … 条件に合う問題をシャッフルして count 件
         edition    … 指定した回の全問
         weak       … 苦手問題（3 回以上解答・正答率 100% 未満）を正答率昇順
+        needs_check … 「要確認」の印がある問題を回・問題番号の順
+        unreviewed … 人がまだ確認していない問題を回・問題番号の順
     ids:
         指定した ID の問題のみを返す（モード問わず優先）
     """
@@ -92,6 +94,30 @@ def get_questions(
                     FROM questions q
                     WHERE q.id IN ({placeholders})""",
                 ids,
+            ).fetchall()
+            return [_parse_question(r) for r in rows]
+
+        if mode in ("needs_check", "unreviewed"):
+            conditions: List[str] = [
+                "q.needs_check = 1" if mode == "needs_check" else "q.is_reviewed = 0"
+            ]
+            params: List = []
+            if question_type:
+                conditions.append("q.question_type = ?")
+                params.append(question_type)
+            if multiple_only:
+                conditions.append("q.is_multiple = 1")
+            rows = conn.execute(
+                f"""SELECT q.*,
+                           COALESCE(
+                               (SELECT subject_new FROM subject_mapping
+                                WHERE subject_old = q.subject LIMIT 1),
+                               q.subject
+                           ) AS subject_display
+                    FROM questions q
+                    WHERE {' AND '.join(conditions)}
+                    ORDER BY q.edition, q.question_number""",
+                params,
             ).fetchall()
             return [_parse_question(r) for r in rows]
 
@@ -288,6 +314,53 @@ def set_review_status(question_id: str, body: ReviewBody):
     return {"ok": True, "is_reviewed": body.is_reviewed}
 
 
+class CheckBody(BaseModel):
+    needs_check: StrictBool
+    check_note: Optional[StrictStr] = None  # 省略と null の明示を model_fields_set で分ける
+
+
+def _normalize_check_note(note: Optional[str]) -> Optional[str]:
+    """理由の前後の空白を取り、空になったら None にする"""
+    if note is None:
+        return None
+    note = note.strip()
+    return note or None
+
+
+def _check_needs_check(body: dict) -> None:
+    """本文に needs_check・check_note があるとき、型が違えば 422 にする"""
+    if "needs_check" in body and not isinstance(body["needs_check"], bool):
+        raise HTTPException(status_code=422, detail="needs_check は true / false で指定してください")
+    if "check_note" in body and not (body["check_note"] is None or isinstance(body["check_note"], str)):
+        raise HTTPException(status_code=422, detail="check_note は文字列か null で指定してください")
+
+
+@router.patch("/questions/{question_id}/check")
+def set_check_status(question_id: str, body: CheckBody):
+    """要確認の印と理由だけを変える (クイズ画面の「要確認にする」ボタン用)。
+
+    check_note を省略したときは、今の理由を保つ (印を外しても理由は残る)。
+    """
+    with get_db() as conn:
+        if "check_note" in body.model_fields_set:
+            cur = conn.execute(
+                "UPDATE questions SET needs_check = ?, check_note = ? WHERE id = ?",
+                (1 if body.needs_check else 0, _normalize_check_note(body.check_note), question_id),
+            )
+        else:
+            cur = conn.execute(
+                "UPDATE questions SET needs_check = ? WHERE id = ?",
+                (1 if body.needs_check else 0, question_id),
+            )
+        conn.commit()
+        if cur.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Question not found")
+        row = conn.execute(
+            "SELECT needs_check, check_note FROM questions WHERE id = ?", (question_id,)
+        ).fetchone()
+    return {"ok": True, "needs_check": row["needs_check"], "check_note": row["check_note"]}
+
+
 @router.post("/questions")
 def create_question(body: dict = Body(...)):
     edition = body.get("edition")
@@ -296,6 +369,7 @@ def create_question(body: dict = Body(...)):
         raise HTTPException(status_code=422, detail="edition と question_number は必須です")
 
     _check_is_reviewed(body)
+    _check_needs_check(body)
     question_id = f"{edition}_{question_number}"
     correct_options = body.get("correct_options", [])
 
@@ -308,8 +382,8 @@ def create_question(body: dict = Body(...)):
             INSERT INTO questions (
                 id, edition, subject, question_number, question_type, case_text, question_text,
                 is_multiple, options, correct_options, explanation, keywords, reference_links, curriculum,
-                is_reviewed
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                is_reviewed, needs_check, check_note
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             question_id,
             edition,
@@ -326,6 +400,8 @@ def create_question(body: dict = Body(...)):
             json.dumps(body.get("reference_links", []), ensure_ascii=False),
             body.get("curriculum"),
             1 if body.get("is_reviewed") else 0,  # 送られなければ列の既定値と同じ 0
+            1 if body.get("needs_check") else 0,
+            _normalize_check_note(body.get("check_note")),
         ))
         conn.commit()
     return {"ok": True, "id": question_id}
@@ -334,6 +410,7 @@ def create_question(body: dict = Body(...)):
 @router.put("/questions/{question_id}")
 def update_question(question_id: str, body: dict = Body(...)):
     _check_is_reviewed(body)
+    _check_needs_check(body)
     with get_db() as conn:
         row = conn.execute("SELECT id FROM questions WHERE id = ?", (question_id,)).fetchone()
         if not row:
@@ -364,6 +441,17 @@ def update_question(question_id: str, body: dict = Body(...)):
             conn.execute(
                 "UPDATE questions SET is_reviewed = ? WHERE id = ?",
                 (1 if body["is_reviewed"] else 0, question_id),
+            )
+        # 要確認の印と理由も、本文にあるときだけ更新する
+        if "needs_check" in body:
+            conn.execute(
+                "UPDATE questions SET needs_check = ? WHERE id = ?",
+                (1 if body["needs_check"] else 0, question_id),
+            )
+        if "check_note" in body:
+            conn.execute(
+                "UPDATE questions SET check_note = ? WHERE id = ?",
+                (_normalize_check_note(body["check_note"]), question_id),
             )
         conn.commit()
     return {"ok": True}
