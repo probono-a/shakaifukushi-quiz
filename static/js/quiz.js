@@ -155,6 +155,8 @@ function updateSetupOptions() {
   document.getElementById('opt-edition').classList.toggle('hidden', mode !== 'edition');
   document.getElementById('info-wrong').classList.toggle('hidden', mode !== 'wrong_only');
   document.getElementById('info-rare').classList.toggle('hidden', mode !== 'rare');
+  document.getElementById('info-needs-check').classList.toggle('hidden', mode !== 'needs_check');
+  document.getElementById('info-unreviewed').classList.toggle('hidden', mode !== 'unreviewed');
 }
 
 /* ── セッション開始 ── */
@@ -232,6 +234,7 @@ function renderQuestion() {
   // メタ情報
   document.getElementById('q-meta').innerHTML = [
     '<span id="q-review-badge"></span>',
+    '<span id="q-check-badge"></span>',
     `<span class="badge bd-muted">第 ${q.edition} 回</span>`,
     `<span class="badge bd-primary">${q.subject_display || q.subject}</span>`,
     q.curriculum === 'new' ? '<span class="badge bd-teal">新カリキュラム</span>' : '<span class="badge bd-muted">旧カリキュラム</span>',
@@ -263,6 +266,7 @@ function renderQuestion() {
     </div>`).join('');
 
   renderReviewBadge(q);
+  renderCheckBadge(q);
 
   // フィードバック非表示
   document.getElementById('feedback').classList.add('hidden');
@@ -342,6 +346,7 @@ function judgeAnswer() {
   // 参考リンク
   renderBookmarkLinks(q.reference_links, document.getElementById('fb-links'));
 
+  renderCheckNote(q);
   renderFeedbackActions(q);
 
   // 履歴を記録
@@ -371,13 +376,52 @@ function renderReviewBadge(q) {
   if (el) el.innerHTML = q.is_reviewed ? '' : '<span class="badge bd-warning">未確認</span>';
 }
 
-/* 解説欄の「編集」「確認済みにする」ボタン。
+/* ── 要確認 (バッジは解く前から、理由は解いたあとだけ出す) ── */
+function renderCheckBadge(q) {
+  const el = document.getElementById('q-check-badge');
+  if (el) el.innerHTML = q.needs_check ? '<span class="badge bd-warning">⚠️ 要確認</span>' : '';
+}
+
+/* 理由には答えに触れる内容が入りうるので、解いたあとにだけ出す。
+   HTML として解釈させないよう textContent で入れる */
+function renderCheckNote(q) {
+  const el = document.getElementById('fb-check-note');
+  el.classList.toggle('hidden', !q.needs_check);
+  el.textContent = q.needs_check ? (q.check_note ? `⚠️ 要確認: ${q.check_note}` : '⚠️ 要確認') : '';
+}
+
+async function toggleCheck(q, btn) {
+  const body = { needs_check: !q.needs_check };
+  if (body.needs_check) {
+    // prompt() は 1 行なので、複数行の理由を初期値にすると改行が落ちる。前の理由は初期値に入れない
+    const msg = q.check_note
+      ? `要確認の理由を入力してください。\n空のまま OK なら、前の理由を使います:\n${q.check_note}`
+      : '要確認の理由を入力してください (空のままでも付けられます)';
+    const input = prompt(msg, '');
+    if (input === null) return;  // キャンセル
+    if (input.trim() || !q.check_note) body.check_note = input;  // 空なら省略して前の理由を保つ
+  }
+  btn.disabled = true;
+  try {
+    const res = await API.patch(`/api/questions/${encodeURIComponent(q.id)}/check`, body);
+    updateQuestionReviewStatus(q.id, q.is_reviewed, { needs_check: res.needs_check, check_note: res.check_note });
+  } catch (e) {
+    console.error(e);
+    btn.disabled = false;
+    alert('要確認の印を変えられませんでした: ' + e.message);
+  }
+}
+
+/* 解説欄の「編集」「確認済みにする」「要確認」ボタン。
    編集は editor.html を別タブで開く（クイズの進行状態を保つため画面遷移しない） */
 function renderFeedbackActions(q) {
   const wrap = document.getElementById('fb-actions');
   wrap.innerHTML =
     (q.is_reviewed ? '' : '<button class="btn btn-primary btn-sm" id="btn-review-q">✓ 確認済みにする</button>') +
+    `<button class="btn btn-secondary btn-sm" id="btn-check-q">${q.needs_check ? '要確認を外す' : '⚠️ 要確認にする'}</button>` +
     '<button class="btn btn-secondary btn-sm" id="btn-edit-q">✏️ 編集</button>';
+  const checkBtn = document.getElementById('btn-check-q');
+  checkBtn.addEventListener('click', () => toggleCheck(q, checkBtn));
   document.getElementById('btn-edit-q').addEventListener('click', () =>
     window.open(`/editor.html?id=${encodeURIComponent(q.id)}`, '_blank'));
   const reviewBtn = document.getElementById('btn-review-q');
@@ -394,16 +438,26 @@ function renderFeedbackActions(q) {
   });
 }
 
-/* 手元の問題データの確認状態を書き換え、表示中の問題ならバッジとボタンだけ描き直す。
+/* 手元の問題データの確認状態 (と、渡されれば要確認の印・理由) を書き換え、
+   表示中の問題ならバッジ・理由・ボタンだけ描き直す。
    renderQuestion() は呼ばない（解答の状態が戻り、解答履歴が二重に記録されるため）。
-   エディタ (別タブ) が保存後に window.opener 経由でも呼ぶ */
-function updateQuestionReviewStatus(id, isReviewed) {
+   エディタ (別タブ) が保存後に window.opener 経由でも呼ぶ。
+   古いタブでも動くよう、関数名は変えずに引数を足している */
+function updateQuestionReviewStatus(id, isReviewed, check) {
   const target = state.questions.find(x => x.id === id);
   if (!target) return;
   target.is_reviewed = isReviewed ? 1 : 0;
+  if (check) {
+    target.needs_check = check.needs_check ? 1 : 0;
+    target.check_note = check.check_note ?? null;
+  }
   if (state.questions[state.idx] !== target) return;
   renderReviewBadge(target);
-  if (state.answered) renderFeedbackActions(target);
+  renderCheckBadge(target);
+  if (state.answered) {
+    renderCheckNote(target);
+    renderFeedbackActions(target);
+  }
 }
 
 /* ── 次へ ── */
