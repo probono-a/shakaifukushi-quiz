@@ -39,7 +39,7 @@ DB のパスは `db.py` の `get_db_path()` だけが決める。環境変数 `Q
 **データベース**: `data/quiz.db` (SQLite、git 管理外) 。テーブル作成・列の移行・初期データは `db.py` の `init_db()` に集約され、`main.py` の起動時と `import_json.py` の実行時に呼ばれる。  
 **主要テーブル：**
 
-- `questions` — 過去問。`id` は `{回}_{問番号}` 形式。`is_reviewed` (0 = 未確認、1 = 確認済み) で人の確認状態を持つ
+- `questions` — 過去問。`id` は `{回}_{問番号}` 形式。`is_reviewed` (0 = 未確認、1 = 確認済み) で人の確認状態を持つ。`needs_check` (0 / 1) と `check_note` (理由) で「要確認」の印を持つ (確認状態とは連動しない)
 - `sessions` — 学習セッションのメタデータ (UUID、mode、config JSON)
 - `history` — 1解答ごとの記録 (`time_sec`、`is_correct`、`curriculum` を含む)
 - `subject_mapping` — 旧カリキュラム→新カリキュラムの科目名マッピング (2024年改定対応) 。クエリでは `COALESCE(sm.subject_new, q.subject)` で統一表示する
@@ -56,6 +56,8 @@ tools/          quiz_editor.html など補助ツール
 docs/
   screenshots/  README 用スクリーンショット
   dev/          開発・内部ドキュメント
+    plan/       実装計画 (実装中)
+    implemented/ 実装計画 (実装済み)
     prompts/    AI プロンプト集
     archive/    旧ドキュメント
 tests/          pytest による自動テスト (DB・インポート・API)
@@ -91,7 +93,7 @@ JSON ファイルは `data/json/{回}th/` 以下に配置される。AI精査後
 
 - **科目マッピングは常に必要**: 問題レコードには旧カリキュラムの科目名が格納されている。フロントエンド向けのクエリはすべて `subject_mapping` を JOIN し、新旧カリキュラムの科目を統一表示する必要がある。
 - **`curriculum` フィールド**: `questions` と `history` 両方に存在する。値は `'old'` (2024年以前) または `'new'` (2024年以降) 。絞り込みや統計では別々に扱う。
-- **問題取得モード**: `questions.py` のクエリパラメータ `mode` で切り替える — `subject` (科目別) 、`random` (ランダム) 、`wrong_only` (間違いのみ) 、`edition` (回別) 、`weak` (正答率低順) 、`rare` (未出題・少ない順) 。
+- **問題取得モード**: `questions.py` のクエリパラメータ `mode` で切り替える — `subject` (科目別) 、`random` (ランダム) 、`wrong_only` (間違いのみ) 、`edition` (回別) 、`weak` (正答率低順) 、`rare` (未出題・少ない順) 、`needs_check` (要確認の印がある問題) 、`unreviewed` (未確認の問題) 。
 - **外部サービスなし**: すべてのデータはローカル完結。外部依存は CDN の Chart.js と Google Fonts のみ (HTML `<head>` でロード) 。
 - **`.mcp.json`**: Claude Code の MCP SQLite 連携を設定し、開発時に `data/quiz.db` を直接参照できるようにしている。
 - **`CHANGELOG.md`**: ユーザーに影響する変更（機能追加・修正）をコミットしたら、都度先頭に追記する。内部的なリファクタリングやドキュメントのみの変更は記載しなくてよい。
