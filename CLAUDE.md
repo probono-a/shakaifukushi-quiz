@@ -90,6 +90,18 @@ data/           SQLite DB・PDF・JSON（すべて git 管理外）
 
 JSON ファイルは `data/json/{回}th/` 以下に配置される。AI精査後は `data/json/ai_reviewed/`、DBインポート後は `data/json/imported_to_db/` に移動する。確認状態の正は、インポート後は DB の `questions.is_reviewed` で、JSON の `is_reviewed` はインポート時に一度だけ読む。`data/json/checked/` と `tools/quiz_editor.html` は、この流れでは使わない。
 
+## アプリを直すときの流れ
+
+1. **計画**: Issue を読み、`docs/dev/plan/plan-issueN-<短い名前>.md` に計画書を書く
+   - ブランチ `feature/issueN-<短い名前>` を切り、計画書もそこにコミットする
+   - 分からないことは、推測で決めずにユーザーに聞く
+   - テストも計画する (自動テストで何を確かめるか、手動で何を確かめるか)
+2. **実装**: 計画書にユーザーの OK が出てから実装する
+3. **完了**: テストが通り、実装が終わったら、計画書を `docs/dev/implemented/` に移す
+4. **PR**: PR を作り、ユーザーの OK が出てからマージする
+
+このリポジトリは公開しているので、計画書・Issue・コミットには、ほかのリポジトリや個人の事情を書かない。
+
 ## 重要なパターン
 
 - **科目マッピングは常に必要**: 問題レコードには旧カリキュラムの科目名が格納されている。フロントエンド向けのクエリはすべて `subject_mapping` を JOIN し、新旧カリキュラムの科目を統一表示する必要がある。
