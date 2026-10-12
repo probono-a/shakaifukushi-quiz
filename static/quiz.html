@@ -245,6 +245,15 @@
           </div>
         </div>
 
+        <!-- 解く時間を計るか (初期値はモードで決まる。模擬受験だけオン) -->
+        <div class="form-group" style="margin-bottom:1.25rem">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer;font-size:.9rem">
+            <input type="checkbox" id="opt-timed">
+            <span>⏱️ 解く時間を計る</span>
+          </label>
+          <div class="text-muted" style="font-size:.8rem;margin-top:.25rem">オンのときだけ、本番予想時間・科目別の平均に入ります</div>
+        </div>
+
         <button class="btn btn-primary btn-lg" id="btn-start">学習を始める →</button>
       </div>
     </div>
@@ -310,7 +319,7 @@
           <div class="result-num" id="res-score">—</div>
           <div class="result-label" id="res-label">— / — 問正解</div>
           <div class="result-actions">
-            <button class="btn btn-secondary btn-lg" id="btn-retry">もう一度設定する</button>
+            <button class="btn btn-secondary btn-lg" id="btn-retry">学習セッションを設定する</button>
             <button class="btn btn-primary btn-lg" id="btn-dashboard">ダッシュボードへ</button>
           </div>
         </div>
