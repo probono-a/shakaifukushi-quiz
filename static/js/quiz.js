@@ -84,11 +84,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const count    = params.get('count');
 
   const ids = params.get('ids');
+  const timed = params.has('timed');  // URL から始めるときは、timed があるときだけ計る (値は見ない)
 
   if (ids) {
     // ダッシュボードから特定問題を指定
     state.mode = 'ids';
-    state.config = { ids: ids.split(',') };
+    state.config = { ids: ids.split(','), timed };
     await startSession();
   } else if (mode) {
     // おすすめカード・苦手問題ボタンからの遷移
@@ -96,6 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     state.config = {
       subjects: subjects ? subjects.split(',') : [],
       count: count ? Number(count) : 20,
+      timed,
     };
     await startSession();
   } else {
@@ -114,6 +116,8 @@ async function initSetup() {
       document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
       card.classList.add('selected');
       state.mode = card.dataset.mode;
+      // 時間を計るのは、初めは模擬受験だけ。手で切り替えたあとでも、モードを変えたら初期値に戻す
+      document.getElementById('opt-timed').checked = state.mode === 'edition';
       updateSetupOptions();
     });
   });
@@ -179,6 +183,7 @@ async function startSession() {
     if (mode === 'edition') {
       config.edition = Number(document.getElementById('edition-select').value);
     }
+    config.timed = document.getElementById('opt-timed').checked;
     state.config = config;
   }
 
@@ -196,6 +201,8 @@ async function startSession() {
     const questions = await API.get('/api/questions?' + params.toString());
     if (!questions.length) {
       alert('対象の問題が見つかりませんでした。条件を変えてお試しください。');
+      // 前の設定を空にし、次に始めるときは設定の画面から読み直す (#12)
+      state.config = {};
       showScreen('setup');
       return;
     }
@@ -212,6 +219,7 @@ async function startSession() {
   } catch (e) {
     console.error(e);
     alert('エラーが発生しました: ' + e.message);
+    state.config = {};  // 0 問のときと同じ (#12)
     showScreen('setup');
   }
 }
@@ -349,8 +357,8 @@ function judgeAnswer() {
   renderCheckNote(q);
   renderFeedbackActions(q);
 
-  // 履歴を記録
-  const time_sec = state.questionStartTime
+  // 履歴を記録。計らないセッションでは time_sec を null にし、ダッシュボードの平均から外す
+  const time_sec = state.config.timed && state.questionStartTime
     ? Math.round((Date.now() - state.questionStartTime) / 100) / 10  // 0.1秒単位
     : null;
   API.post('/api/history', {
@@ -520,12 +528,8 @@ function renderResult() {
   document.getElementById('res-subject-section').style.opacity = '0';
 
   // ボタン
-  document.getElementById('btn-retry').onclick = () => {
-    state.sessionId = null;
-    state.questions = [];
-    state.answers = [];
-    initSetup().then(() => showScreen('setup'));
-  };
+  // 設定の画面を作り直すと、前の設定が残ったり処理が重なったりするので、ページごと開き直す
+  document.getElementById('btn-retry').onclick = () => location.href = '/quiz.html';
   document.getElementById('btn-dashboard').onclick = () => location.href = '/';
 
   // カウントアップアニメーション（呼び出し側でタイミングを制御）

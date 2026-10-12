@@ -1,13 +1,4 @@
 import pytest
-from fastapi.testclient import TestClient
-
-from main import app
-
-
-@pytest.fixture
-def client():
-    with TestClient(app) as c:  # with を使わないと lifespan が走らず、init_db() が呼ばれない
-        yield c
 
 
 def body(**kw):
