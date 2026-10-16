@@ -268,6 +268,7 @@ select.edit-input { cursor: pointer; }
 .edit-md-preview h3, .edit-md-preview h4 { color: var(--warning); margin: .5rem 0 .2rem; }
 .edit-md-preview strong { color: var(--text); }
 .edit-md-preview p { margin: .2rem 0; }
+.edit-md-preview ul, .edit-md-preview ol { padding-left: 1.4rem; margin: .3rem 0; }
 .edit-kw-area { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
 .edit-kw-chip {
   display: inline-flex; align-items: center; gap: .25rem;

@@ -3,6 +3,9 @@ const SoundManager = (() => {
   const MUTE_KEY = 'quiz_muted';
   let _ctx = null;
   let _muted = localStorage.getItem(MUTE_KEY) === '1';
+  // ユーザーがもう操作したか。操作の前に鳴らそうとした音は、ブラウザに止められ、
+  // 次の操作のときに遅れて鳴るので、操作の前は鳴らさない (#18)
+  let _activated = false;
   const _buffers = {};
 
   const FILES = {
@@ -37,6 +40,17 @@ const SoundManager = (() => {
     document.addEventListener('click', handler, true);
   }
 
+  function watchActivation() {
+    const handler = (e) => {
+      if (!e.isTrusted) return;  // プログラムからの .click() は数えない
+      _activated = true;
+      document.removeEventListener('click', handler, true);
+      document.removeEventListener('keydown', handler, true);
+    };
+    document.addEventListener('click', handler, true);
+    document.addEventListener('keydown', handler, true);
+  }
+
   function playBuffer(key) {
     const buf = _buffers[key];
     if (!buf) return;
@@ -47,7 +61,7 @@ const SoundManager = (() => {
   }
 
   function play(type) {
-    if (_muted) return;
+    if (_muted || !_activated) return;
     try {
       if (_buffers[type]) {
         playBuffer(type);
@@ -65,6 +79,7 @@ const SoundManager = (() => {
     return _muted;
   }
 
+  watchActivation();
   preload();
   return { play, isMuted, toggleMute };
 })();
