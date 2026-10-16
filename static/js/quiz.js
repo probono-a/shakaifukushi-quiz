@@ -107,7 +107,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /* ── Setup screen ── */
+// URL から始めると、設定の画面に戻るときに初めて準備する。2 回目からは何もしない (#20)
+let setupReady = false;
 async function initSetup() {
+  if (setupReady) return;
+  setupReady = true;
   const subjects = await API.get('/api/subjects');
 
   // モードカードのクリック
@@ -201,9 +205,7 @@ async function startSession() {
     const questions = await API.get('/api/questions?' + params.toString());
     if (!questions.length) {
       alert('対象の問題が見つかりませんでした。条件を変えてお試しください。');
-      // 前の設定を空にし、次に始めるときは設定の画面から読み直す (#12)
-      state.config = {};
-      showScreen('setup');
+      await backToSetup();
       return;
     }
     state.questions = questions;
@@ -219,9 +221,21 @@ async function startSession() {
   } catch (e) {
     console.error(e);
     alert('エラーが発生しました: ' + e.message);
-    state.config = {};  // 0 問のときと同じ (#12)
-    showScreen('setup');
+    await backToSetup();
   }
+}
+
+/* 0 問・エラーのあと、設定の画面に戻す */
+async function backToSetup() {
+  // 前の設定を空にし、次に始めるときは設定の画面から読み直す (#12)
+  state.config = {};
+  // URL から始めたときは、設定の画面をまだ準備していない (#20)
+  try {
+    await initSetup();
+  } catch (e) {
+    console.error(e);  // 準備に失敗しても、設定の画面は出す
+  }
+  showScreen('setup');
 }
 
 /* ── 問題レンダリング ── */
