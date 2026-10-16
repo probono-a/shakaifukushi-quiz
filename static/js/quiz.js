@@ -369,6 +369,7 @@ function judgeAnswer() {
     curriculum: q.curriculum,
     edition: q.edition,
     time_sec,
+    selected_options: state.selected,
   }).catch(console.error);
 
   state.answers.push({ questionId: q.id, isCorrect, selected: state.selected });

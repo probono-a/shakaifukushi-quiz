@@ -102,7 +102,8 @@ def init_db(conn: sqlite3.Connection) -> None:
         is_correct   INTEGER,
         subject      TEXT,
         curriculum   TEXT,
-        edition      INTEGER
+        edition      INTEGER,
+        selected_options TEXT
     )
     """)
 
@@ -114,6 +115,8 @@ def init_db(conn: sqlite3.Connection) -> None:
         cursor.execute("ALTER TABLE history ADD COLUMN edition INTEGER")
     if "time_sec" not in existing:
         cursor.execute("ALTER TABLE history ADD COLUMN time_sec REAL")
+    if "selected_options" not in existing:
+        cursor.execute("ALTER TABLE history ADD COLUMN selected_options TEXT")
 
     # 科目マッピングテーブル
     cursor.execute("""
