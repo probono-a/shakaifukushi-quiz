@@ -1,3 +1,5 @@
+import csv
+import io
 import json
 
 from db import get_db
@@ -43,3 +45,37 @@ def test_session_config_keeps_timed(client):
     with get_db() as conn:
         row = conn.execute("SELECT config FROM sessions WHERE id = ?", (r.json()["id"],)).fetchone()
     assert json.loads(row["config"]) == {"timed": False}
+
+
+def post_answer(client, **extra):
+    r = client.post("/api/history", json={
+        "session_id": "s1", "question_id": "35_1", "is_correct": False,
+        "subject": "現代社会と福祉", "curriculum": "old", "edition": 35, **extra,
+    })
+    assert r.status_code == 201, r.text
+
+
+def saved_selected_options(client):
+    with get_db() as conn:
+        return [r["selected_options"] for r in conn.execute("SELECT selected_options FROM history ORDER BY id")]
+
+
+def test_selected_options_are_saved_sorted(client):
+    post_answer(client, selected_options=[3, 1])
+    post_answer(client, selected_options=[2])
+    assert saved_selected_options(client) == ["1,3", "2"]
+
+
+def test_selected_options_omitted_is_null(client):
+    post_answer(client)
+    post_answer(client, selected_options=None)
+    assert saved_selected_options(client) == [None, None]
+
+
+def test_export_has_selected_options_column(client):
+    post_answer(client, selected_options=[3, 1])
+    post_answer(client)
+    r = client.get("/api/history/export")
+    rows = list(csv.reader(io.StringIO(r.content.decode("utf-8-sig"))))
+    assert rows[0][-1] == "選んだ選択肢"
+    assert sorted(row[-1] for row in rows[1:]) == ["", "1,3"]

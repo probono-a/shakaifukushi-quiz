@@ -131,3 +131,15 @@ def test_new_db_has_needs_check_columns(tmp_path):
     init_db(conn)
     conn.execute("INSERT INTO questions (id) VALUES ('x')")
     assert conn.execute("SELECT needs_check, check_note FROM questions").fetchone() == (0, None)
+
+
+def test_migration_adds_selected_options_to_old_history(tmp_path):
+    """selected_options の列が無い history に列を足す。元の行は NULL のまま"""
+    conn = sqlite3.connect(tmp_path / "old.db")
+    conn.execute("""CREATE TABLE history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT, question_id TEXT,
+        answered_at DATETIME, is_correct INTEGER, subject TEXT, curriculum TEXT, edition INTEGER)""")
+    conn.execute("INSERT INTO history (question_id, is_correct) VALUES ('35_1', 1)")
+    conn.commit()
+    init_db(conn)
+    assert conn.execute("SELECT question_id, selected_options FROM history").fetchall() == [("35_1", None)]
