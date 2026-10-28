@@ -9,7 +9,7 @@ data/pdf/*
 !data/pdf/.gitkeep
 data/images/*
 !data/images/.gitkeep
-data/*.db
+data/*.db*
 data/json/**/*
 !data/.gitkeep
 
